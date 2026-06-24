@@ -1,0 +1,33 @@
+name: Lesson question
+description: Ask a question about a lesson or source paper.
+title: "[Question] "
+labels: ["question", "course"]
+body:
+  - type: dropdown
+    id: course
+    attributes:
+      label: Course
+      options:
+        - CHT New-Hire Curriculum
+    validations:
+      required: true
+  - type: input
+    id: lesson
+    attributes:
+      label: Lesson or source
+      placeholder: "Example: lesson 06, CHTs24 paper"
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What is unclear?
+    validations:
+      required: true
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What I tried
+      description: Briefly explain what you already read or inferred.
+

@@ -1,0 +1,36 @@
+             Sub-quadratic Sparse Attention
+                   Last edited time May 15, 2026 11:37 AM
+             Blog: https://subq.ai/how-ssa-makes-long-context-practical
+             The SSA (Subquadratic Sparse Attention) architecture introduced by SubQ AI is a
+             new long-context transformer approach designed to make million-token AI
+             reasoning practical by replacing standard dense attention with dynamically
+             selected sparse attention. Instead of comparing every token with every other
+             token — which scales quadratically and becomes extremely expensive at long
+             context lengths — SSA intelligently retrieves only the most relevant tokens for
+             each query, reducing computation toward near-linear complexity while still
+             preserving long-range reasoning and retrieval quality. The key innovation is that
+             the sparsity is content-aware rather than based on fixed attention patterns,
+             allowing the model to efficiently find important information even if it is located
+             very far away in the context. According to the reported benchmarks, SSA
+             achieves major speedup (x52 speedup for 1M tokens context window) respect to
+             Flash Attention while maintaining strong performance on long-context reasoning,
+             coding, and retrieval tasks. This architecture could be especially useful for AI
+             coding agents analyzing entire repositories, enterprise document intelligence,
+             legal and financial analysis over massive datasets, scientific research assistants,
+             long-memory conversational agents, and quant research systems where relevant
+             information is distributed across extremely large contexts.
+
+
+
+
+Sub-quadratic Sparse Attention                                                                     1
+             Official paper and code not released. Not many detailed about how SSA
+             mechanism is trained are provided.
+             Someone tried to implement it here:
+             https://gist.github.com/ruvnet/7736317d1311a83137a39e804d7868ea
+
+
+
+
+Sub-quadratic Sparse Attention                                                       2
+

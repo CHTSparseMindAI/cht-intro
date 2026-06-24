@@ -1,0 +1,1988 @@
+                                                 Dense Neural Networks are not Universal Approximators
+
+                                                                   Levi Rauchwerger1 , Stefanie Jegelka2,3 , and Ron Levie4
+                                                                                  1 Princeton University, Dept of CS
+                                                                                   2 MIT, Dept of EECS and CSAIL
+                                                                               3 TUM, School of CIT, MCML, MDSI
+                                                                             4 Technion – IIT, Faculty of Mathematics
+
+
+
+
+arXiv:2602.07618v5 [cs.LG] 7 May 2026
+                                                                                                    Abstract
+
+                                                  We investigate the approximation capabilities of dense neural networks. While universal approximation theorems
+                                              establish that sufficiently large architectures can approximate arbitrary continuous functions when there are no
+                                              restrictions on the weights, we show that dense neural networks do not possess this universality. Our argument is
+                                              based on a model compression approach, combining the weak regularity lemma with an interpretation of feedforward
+                                              networks as message passing graph neural networks. We consider ReLU neural networks subject to natural constraints
+                                              on weights and input and output dimensions, which model a notion of dense connectivity. Within this setting, we
+                                              demonstrate the existence of Lipschitz continuous functions that cannot be approximated by such networks. This
+                                              highlights intrinsic limitations of neural networks with dense layers and motivates the use of sparse connectivity as a
+                                              necessary ingredient for achieving true universality.
+
+                                        Keywords: Artificial Neural Networks, Dense Neural Networks, Neural Network Expressivity, Universal Approximation,
+                                        Weak Regularity Lemma, Graph Neural Networks
+
+
+                                        1    Introduction
+                                        Deep neural networks are central to modern machine learning, driving advances in vision, language, and scientific
+                                        applications [LeCun et al., 2015]. Recently, deep networks have grown increasingly large, enhancing their performance
+                                        while increasing computational costs [Thompson et al., 2020], which motivates a focus on efficiency in both training
+                                        and inference [Menghani, 2023]. One of the most prominent approaches to improving efficiency is the use of sparse
+                                        neural networks. Sparse models can match or surpass dense ones in accuracy, using less energy, memory, and training
+                                        time [Mocanu et al., 2018, Evci et al., 2020, Hoefler et al., 2021, Peste, 2023]. These properties have made sparsification
+                                        methods such as pruning [LeCun et al., 1990, Medeiros and Barreto, 2007, Han et al., 2015, Lee et al., 2019] key in
+                                        the use of deep networks on limited-resource devices and for lowering inference cost in large-scale systems [Cheng
+                                        et al., 2018]. Strikingly, even pruning 80–90% of parameters often leaves generalization (measured by test error)
+                                        unaffected [Frankle and Carbin, 2019]. Beyond efficiency, sparsity can enhance optimization at certain levels, act as a
+                                        built-in regularizer, and reduce sensitivity to noisy data [He et al., 2022, Jin et al., 2022].
+
+                                        These empirical evidences raise the possibility that denseness itself may impose intrinsic limitations. While neural
+                                        networks are known to approximate broad function classes [Yarotsky, 2017], it remains unclear whether such guarantees
+                                        persist under dense connectivity constraints. This motivates the following central question: Do dense deep neural
+                                        networks have inferior expressivity?
+
+                                        Our work focuses on the 𝐿 ∞ -approximation error for 1-Lipschitz continuous functions bounded by 1 on a 𝑑-dimensional
+                                        domain. Within this setting, the approximation capabilities of neural networks have been extensively studied since the
+                                        development of classical universal approximation theorems [Cybenko, 1989, Hornik, 1991]. A central result is that any
+                                        Lipschitz continuous (or more generally continuous) function on a 𝑑-dimensional compact domain can be approximated
+                                        to arbitrary accuracy 𝜖 > 0 by a sufficiently large ReLU network [Mhaskar, 1996, Pinkus, 1999]. Yarotsky [2017] gave
+                                        explicit error bounds for approximating functions in Sobolev spaces of given smoothness using deep and shallow ReLU
+
+
+                                                                                                        1
+networks. Notably, Yarotsky [2017] provides rigorous upper and lower bounds on the number of weights required for a
+given approximation error.
+
+In contrast to prior work that studies the expressivity of general neural networks, we specifically investigate the
+expressivity limits of dense networks. We consider dense networks whose weight matrices are uniformly bounded, with
+both entrywise ℓ∞ control and normalized ℓ1 magnitude. These constraints enforce a strong form of denseness: nontrivial
+outputs require contributions from many neurons, so dense connectivity reflects genuine collective computation rather
+than a few dominating weights. By leveraging the graph structure of neural computation, we connect deep neural
+networks to the broader class of graph neural networks [Gilmer et al., 2017a, Xu et al., 2019], for which a rich theoretical
+framework has been developed [Levie, 2023, Rauchwerger and Levie, 2025, Böker et al., 2023, Rauchwerger et al., 2025,
+Herbst and Jegelka, 2025, Finkelshtein et al., 2024, Kouchly et al., 2025] using dense graph limit theory [Lovász, 2012].
+Our analysis builds on the so-called weak regularity lemma [Frieze and Kannan, 1999, László and Szegedy, 2007] to
+obtain an implicit compression result, showing that – even as width increases (and depth is held fixed) – the expressive
+power of dense networks saturates at a fixed resolution, thereby revealing intrinsic barriers that scaling alone cannot
+overcome. Our theoretical framework is fundamentally different from both compression-based generalization analyses
+[Arora et al., 2018] and optimization-based perspectives such as in [Jacot et al., 2018]. Instead, we study intrinsic
+expressivity constraints of dense architectures, independent of training, generalization, or optimization dynamics,
+by leveraging the precise characterizations provided by Yarotsky [2017] and structural graph-theoretic constraints
+inherent to dense architectures. We are not aware of any prior work that uses compression to derive expressivity limits,
+particularly for dense neural networks.
+
+Contributions. We provide a theoretical account of a widely observed phenomenon: dense neural networks are
+fundamentally less expressive than their sparse counterpart. Our results can be summarized as follows.
+
+    1. Classical results achieve universality by allowing width to increase with the desired approximation accuracy. In
+       contrast, we show that, under some conditions on the input dimension, dense networks of any fixed depth cannot
+       exploit width alone to achieve universality; their expressive power saturates, revealing an inherent limitation of
+       dense architectures (Theorem 9).
+
+    2. Our proof technique is not only novel but also offers a broadly applicable framework for analyzing neural networks.
+       We identify two primary ways this technique can be adopted:
+
+          • General Approximation Method: The method can be generalized to any subclass of networks that admits
+            a compression guarantee – specifically, where there exists a small, bounded class that approximates the
+            original subclass.
+
+          • Graph-Theoretic Perspective: By treating the neural network as a computational graph, our approach
+            utilizes tools from GNN theory – specifically the regularity lemma – to study architectural properties. This
+            provides a blueprint for using GNN theory, and specifically regularity theorems, to analyze other aspects of
+            neural networks.
+
+    3. As a byproduct, our analysis yields an implicit model compression scheme (Corollary 7) showing that every dense
+       ReLU network can be approximated by a bounded-size network.
+
+
+2     Preliminaries
+Here, we provide graph-theoretic background, including kernels as a dense analogue of graphs [Lovász, 2012], introduce
+Euclidean and graph networks, propose a formal “strong” notion of dense networks, and recall definitions of network
+complexity and function approximation.
+
+Graphs. For 𝑛 ∈ N, we write [𝑛] =: {1, . . . , 𝑛}. An attributed graph (or graph-signal) is a pair (𝐺, f), where 𝐺 is
+a weighted directed graph with node set 𝑉 = [𝑛], edge set 𝐸 ⊆ 𝑉 × 𝑉, and adjacency matrix A := ( 𝐴𝑖, 𝑗 )𝑖, 𝑗 ∈ [𝑛] , and
+f : 𝑉 → R is a node feature vector (signal). The signal assigns to each node 𝑣 ∈ 𝑉 an attribute f (𝑣) ∈ R. Let 𝐵 > 0,
+define a [−𝐵, 𝐵]-weighted graph as a graph with edge weights in [−𝐵, 𝐵].
+
+
+                                                             2
+Partitions. Let 𝜇 denote the Lebesgue
+                                   Ð        measure on [0, 1]. A partition of [0, 1] is a sequence P𝑛 = {𝑃1 , . . . , 𝑃𝑛 } of
+disjoint measurable sets such that 𝑛𝑗=1 𝑃 𝑗 = [0, 1]. The partition is an equipartition if 𝜇(𝑃𝑖 ) = 𝜇(𝑃 𝑗 ) for all 𝑖, 𝑗 ∈ [𝑛].
+By I𝑛 , we denote the equipartition of [0, 1] into 𝑛 intervals. A partition Q𝑙 is called a refinement of P𝑘 if every 𝑄 ∈ Q𝑙
+is a subset of some 𝑃 ∈ P𝑘 . The above definitions extend naturally to general intervals [𝑎, 𝑏] instead of [0, 1].
+
+Kernels. Kernels generalize the idea of [−1, 1]-weighted adjacency matrices to the continuous set of nodes [0, 1]. An
+attributed kernel (or kernel-signal) is a pair (𝐾, 𝑓 ), where 𝐾 is a kernel, i.e. a measurable function 𝐾 : [0, 1] 2 → [−1, 1],
+and 𝑓 : [0, 1] → R is a measurable function called feature vector (or signal). By 1𝑆 , we denote                   the indicator function
+of a set 𝑆. We call a kernel 𝐾 a step kernel w.r.t. a partition P𝑛 := {𝑃𝑖 }𝑖=1          𝑛 if 𝐾 (𝑥, 𝑦) := Í
+                                                                                                                𝑖, 𝑗 ∈ [𝑛] 𝑐 𝑖, 𝑗 1 𝑃𝑖 ×𝑃 𝑗 (𝑥, 𝑦)
+for some choice of coefficients     {𝑐 𝑖, 𝑗 ∈ [−1,  1]} 𝑖, 𝑗 ∈ [𝑛] . Similarly, we call  a signal    𝑓  a step signal     w.r.t. a partition
+            𝑛 if 𝑓 (𝑥) := Í
+P𝑛 := {𝑃𝑖 }𝑖=1                      𝑐 1     (𝑥) for some     choice   of coefficients {𝑐   ∈ R}         .
+                             𝑖 ∈ [𝑛] 𝑖 𝑃𝑖                                                𝑖      𝑖 ∈ [𝑛]
+
+
+Graph-Induced Kernels. Any [−𝐵, 𝐵]-weighted graph can be naturally associated with a kernel. Let 𝐺 be a
+[−𝐵, 𝐵]-weighted graph with adjacency matrix A = { 𝐴𝑖, 𝑗 }𝑖, 𝑗 ∈ [𝑛] and signal f. Consider the equipartition I𝑛 = {𝐼 𝑘 } 𝑛𝑘=1
+                                                                                        Í𝑛      𝐴𝑖, 𝑗
+of [0, 1] into 𝑛 intervals.
+                        Í𝑛 The kernel 𝐾𝐺 induced by 𝐺 is defined by 𝐾𝐺 (𝑥, 𝑦) = 𝑖, 𝑗=1 𝐵 1𝐼𝑖 (𝑥)1𝐼 𝑗 (𝑦), with the
+induced signal 𝑓f (𝑧) = 𝑖=1 f𝑖 1𝐼𝑖 (𝑧). This construction allows embedding the space of all graphs of all sizes into the
+space of kernels,1 where approximation properties are more naturally formulated.
+
+Cut Norm. The cut norm, a fundamental distance measure in graph theory, was introduced by Frieze and Kannan
+[1999] and underpins the cut distance, which serves as the central notion of convergence in the theory of dense graph
+limits [Lovász, 2012]. The cut norm of a measurable 𝐾 : [0, 1] 2 → R and a measurable f : [0, 1] → R are respectively
+defined as                              ∫                                            ∫
+                     ∥𝐾 ∥ □ = sup            𝐾 (𝑥, 𝑦)𝑑𝑥𝑑𝑦      and ∥ 𝑓 ∥ □ := sup        𝑓 (𝑥)𝑑𝑥 .
+                                    𝑈,𝑆 ⊂ [0,1]   𝑈×𝑆                                             𝑆 ⊆ [0,1]   𝑆
+
+A distance between graphs can be defined as the norm of the difference between their induced kernels.
+
+Neural Networks. Neural networks (NNs), also known as multilayer perceptrons (MLPs), process vector-valued
+inputs in R𝑑0 using a collection of learnable parameters (or weights) (W, b). These consist of a sequence of weight
+matrices W = (𝑊 (ℓ ) )ℓ=1    𝐿 , where 𝑊 (ℓ ) ∈ R 𝑑ℓ ×𝑑ℓ −1 , and a sequence of bias vectors b = (𝑏 (ℓ ) ) 𝐿 where 𝑏 (ℓ ) ∈ R 𝑑ℓ . We
+                                                                                                          ℓ=1
+call 𝐿 ∈ N the depth of the network and refer to each 0 ≤ ℓ ≤ 𝐿 as a layer. We call 𝑑ℓ ∈ N the width (or alternately the
+dimension) of ℓ th layer and refer to each 𝑖 ∈ [𝑑ℓ ] as a channel. Specifically, we call 𝑑0 and 𝑑 𝐿 the input and output
+dimensions, respectively, and refer to each 𝑖 ∈ [𝑑0 ] as an input channel and each 𝑖 ∈ [𝑑 𝐿 ] as an output       Í 𝐿 channel. The
+tuple (𝐿, 𝑑0 , . . . , 𝑑 𝐿 ) is called the network architecture. The number of network parameters is 𝑊 := ℓ=1          𝑑ℓ · 𝑑ℓ −1 + 𝑑ℓ .
+                                 𝐿+2 Í 𝐿−1
+The network size is 𝑛 := 𝐿−1            ℓ=1 𝑑 ℓ , serving as an effective size parameter; the rationale  is given in Section  3.
+
+Forward Propagation. We work throughout with a normalized parameterization in which each layer is scaled by a
+global factor depending on the network architecture. Given parameters (W, b), the associated depth-𝐿 ReLU network
+Θ (W,b) : R𝑑0 → R𝑑𝐿 is defined as follows. For an input x ∈ R𝑑0 , set h (0) := x. The activation of the first hidden layer
+in channel 𝑖 ∈ [𝑑1 ] is
+                                                                   𝑑0
+                                                            1     ∑︁
+                                      h𝑖(1) = ReLU­                   𝑊𝑖(1) h (0) + 𝑏 𝑖(1) ® .
+                                                                                          ª
+                                                                                                                       (1)
+                                                    ©
+                                                       𝑑0 (𝐿 + 2) 𝑗=1    𝑗    𝑗
+                                                    «                                      ¬
+For layers ℓ = 2, . . . , 𝐿 − 1 and channel 𝑖 ∈ [𝑑ℓ ],
+                                                                    𝑑ℓ −1
+                                                           ©1       ∑︁
+                                              h𝑖(ℓ ) = ReLU­            𝑊𝑖(ℓ𝑗 ) h (ℓ −1)
+                                                                                         + 𝑏 𝑖(ℓ ) ® .
+                                                                                                  ª
+                                                                                  𝑗                                                              (2)
+                                                             𝑛      𝑗=1
+                                                               «                                   ¬
+The output is computed as in Equation (2) with ℓ = 𝐿, without ReLU. The network output is h (𝐿) = (h𝑖(𝐿) )𝑖=1     𝑑𝐿
+                                                                                                                     . The
+different normalization in the first layer reflects that 𝑑0 and 𝑑 𝐿 are fixed in our asymptotic regime, while the effective
+network size 𝑛 may grow arbitrarily.
+   1 More accurately, the mapping from graphs to kernels is not one-to-one, and introduces equivalence classes of graphs that induce the same kernel.
+
+We will see that two equivalent computational graphs define the same function.
+
+
+                                                                            3
+𝐵-Strongly Dense Networks. When weights are unconstrained, the normalized parameterization (in Equations (1)
+and (2)) does not limit generality, since any global scaling can be absorbed into the layer weights. However, under
+uniform weight bounds, it has structural consequences: it forces any nontrivial network—any network that does not map
+all inputs to near-zero outputs—to be dense: meaningful feature propagation requires many neurons to be active. We
+refer to this as a strong notion of denseness to distinguish it from weaker forms where a network might have many
+non-zero weights that are nonetheless large enough to allow a few neurons to dominate the output.
+
+Definition 1 (𝐵-Strongly Dense Network). Let 𝐵 > 0. A depth-𝐿 ReLU network Θ (W,b) is called a 𝐵-infinity normalized
+(𝐵-IN) dense network, or more concisely, a 𝐵-strongly dense network, if its parameters satisfy |𝑊𝑖,(ℓ𝑗) | ≤ 𝐵 and
+|𝑏 𝑖(ℓ ) | ≤ 𝐵, for all layers ℓ ∈ [𝐿], where 𝐵 is a constant independent of the network size 𝑛.
+
+In such networks, each neuron contributes 𝑂 (1/𝑛) to the pre-activation, so no finite subset of neurons can dominate as
+𝑛 → ∞. This contrasts with unbounded networks, where sparse representations with a few large weights remain possible.
+The parameters and the architecture of such networks are referred to as dense parameters and dense architecture (with
+weight bound 𝐵), respectively.
+
+Graph and Kernel Neural Networks. Message passing graph neural networks (MPNNs) form a class of neural
+networks designed to process graph-structured data by iteratively updating node embeddings through the exchange of
+messages between nodes [Merkwirth and Lengauer, 2005, Gori et al., 2005, Xu et al., 2019, Gilmer et al., 2017b]. Levie
+[2023], Rauchwerger and Levie [2025] extend this framework canonically to operate on kernels. Since our construction
+is directly derived for kernels, we adopt their definitions. Unlike general trainable MPNNs, we consider the following
+special predefined network.
+
+𝐵-IR-MPNN. Let 𝐵 > 0 and 𝐿 ∈ N. We define the 𝐵-amplified integral-ReLU MPNN (𝐵-IR-MPNN) Φ 𝐵,𝐿 , with 𝐿
+layers, as the following mapping from attributed kernels to node features. Given (𝐾, 𝑓 ), define Φ 𝐵,𝐿 (𝐾, 𝑓 ) := 𝑓 (𝐿) ,
+where with 𝑓 (0) (𝑥) := 𝑓 (𝑥) and for ℓ ∈ [𝐿 − 1]:
+                                                           ∫                        
+                                    𝑓 (ℓ ) (𝑥) := 𝐵 · ReLU    𝐾 (𝑥, 𝑦) 𝑓 (ℓ −1) (𝑦)𝑑𝑦 .                              (3)
+                                                            [0,1]
+
+The output is computed as in Equation (3) with ℓ = 𝐿, without ReLU. This definition is the canonical extension of
+MPNNs from graphs to kernels. For the definition of MPNNs on graphs and the equivalency to MPNNs on kernels see
+Appendix E.
+
+Functions and Approximation. Our work focuses on the limitations of approximating Lipschitz continuous functions
+[0, 1] 𝑑 → R via 𝐵-strongly dense ReLU networks. Let C(𝑑, 𝑑 ′ ) denote the space of all continuous functions mapping
+              ′
+[0, 1] 𝑑 to R𝑑 . The approximation error between two functions 𝑓 and 𝑔 is ∥ 𝑓 − 𝑔∥ ∞ = ess supx∈ [0,1] 𝑑 ∥ 𝑓 (x) − 𝑔(x) ∥ ∞ .
+Here, the outer ∥ · ∥ ∞ denotes the supremum over the input domain [0, 1] 𝑑 , while the inner ∥ · ∥ ∞ denotes the standard ℓ∞
+                                                                                                                    ′
+norm on the output space (i.e., the maximum absolute value over coordinates). A function 𝑓 : [0, 1] 𝑑 → R𝑑 is called
+𝐿-Lipschitz continuous if there exists a constant 𝐿 ≥ 0 such that ∥ 𝑓 (x) − 𝑓 (y) ∥ ∞ ≤ 𝐿 ∥x − y∥ ∞ for all x, y ∈ [0, 1] 𝑑 .
+Denote the space of 1-Lipschitz continuous functions bounded by 1 as Lip(𝑑, 𝑑 ′ ).
+
+Universal Approximation. A standard way to define the expressive power of a class of neural networks is via universal
+approximation.
+
+Definition 2. Let N N and F be two sets of measurable functions Ω → R𝑑 defined on the measure space Ω. We say
+that N N is a universal approximator of F if for every 𝜖 > 0 and 𝑓 ∈ F there exists Θ ∈ N N such that
+                                       ∥ 𝑓 − Θ∥ ∞ := ess sup ∥ 𝑓 (𝑥) − Θ(𝑥) ∥ ∞ < 𝜖 .
+                                                          𝑥 ∈Ω
+
+
+A classical result states that the class of neural networks with arbitrary width and predefined fixed depth is a universal
+approximator of C(𝑑, 𝑑 ′ ) [Leshno et al., 1993, Mhaskar, 1996, Pinkus, 1999]. In our work, we take Ω = [0, 1] 𝑑0 , choose
+N N to be a class of strongly dense neural networks (to be defined in Section 3) and show that it is not a universal
+approximator of F = Lip(𝑑0 , 𝑑 𝐿 ).
+
+
+                                                              4
+Network Complexity and the VC Dimension. A classical way to formalize the complexity of a hypothesis class of
+neural networks is through its VC-dimension. The VC-dimension, which quantifies the largest set of points in an input
+space X that a hypothesis class H (a class of functions from X to {0, 1}) can shatter, i.e., realize all possible Boolean
+labelings. If |{(ℎ(𝑥1 ), . . . , ℎ(𝑥 𝑚 )) : ℎ ∈ H }| = 2𝑚 , we say H shatters the set {𝑥 1 , . . . , 𝑥 𝑚 }. The Vapnik–Chervonenkis
+dimension of H , denoted VCdim(H ), is the size of the largest shattered set or ∞, if there is no such maximal set.
+
+Note that our complexity measures are largely insensitive to the specific choice of piecewise linear activation function.
+In fact, Yarotsky [2017], Proposition 1, shows that any such activation with finitely many breakpoints can be simulated
+by ReLU networks with only a constant-factor increase in the number of units and weights. Thus, focusing on ReLU
+does not entail any real loss of generality.
+
+
+3      Deep Neural Networks as MPNNs
+Deep networks are often described algebraically – through layers, weights, and nonlinearities. Yet there is another
+perspective: every computation carried out by a network implicitly constructs a graph. Each node represents a feature
+channel and its value an activation, while each edge encodes a single weight of a weight matrix. Any feedforward
+network can thus be implemented via message passing, which propagates information through a specially designed
+directed graph – its computational graph.
+
+In our analysis, we compare “large” neural networks to “small” neural networks that compress them. To define a
+distance between the computational graphs of networks of different sizes, we embed graphs of all sizes into the space
+of kernels, where there is linear structure and a natural norm. Rather than explicitly defining a computational graph
+and then inducing a corresponding kernel, we directly specify the class of kernels that encode valid neural network
+computations. These kernels, which we call computational kernels, are constructed so that, for each dense feedforward
+neural network, message passing with ReLU nonlinearities on the corresponding kernel exactly reproduces the forward
+propagation of the network. For completeness, we provide the equivalent graph-based definition in Appendix E. All
+results in the current section are proved in Appendix A.
+
+Fixed-Width Networks. To simplify the presentation and subsequent analysis, we restrict the analysis to networks
+with fixed hidden width, i.e., 𝑑ℓ = 𝑑 for all ℓ = 1, . . . , 𝐿 − 1. In this case, the network size is 𝑛 = (𝐿 + 2)𝑑, the number
+of parameters is (𝐿 − 1)𝑑 2 + (𝑑0 + 𝑑 𝐿 + 𝐿 − 1)𝑑 + 𝑑 𝐿 , and the forward propagation rule becomes, for all ℓ ∈ [𝐿] and
+𝑖 ∈ [𝑑ℓ ],
+                                                                  𝑑ℓ −1
+                                                          1        ∑︁
+                                   h𝑖(ℓ ) = ReLU­                       𝑊𝑖(ℓ𝑗 ) h (ℓ −1)
+                                                                                         + 𝑏 𝑖(ℓ ) ® .
+                                                ©                                                 ª
+                                                  𝑑ℓ −1 (𝐿 + 2) 𝑗=1               𝑗
+                                                «                                                  ¬
+Note that we can absorb the (𝐿 + 2) factor by choosing 𝐵 = (𝐿 + 2)𝐶 for some 𝐶 > 0. For simplicity, we assume that 𝑑
+is divisible by both 𝑑0 and 𝑑 𝐿 ; this assumption is not essential and can be removed at the cost of additional notation.
+The space of all such networks, with any value of 𝑑, is denoted by N N (𝐿, 𝑑0 , 𝑑 𝐿 ) and similarly, the space of all such
+dense networks with weights and biases bounded in [−𝐵, 𝐵] by N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ).
+
+The Computational Kernel of a Neural Network. We call a kernel 𝐾 : [0, 1] 2 → [−1, 1] a depth-𝐿 computational
+kernel with respect to the parameters 𝐿, 𝑑0 , 𝑑 𝐿 ∈ N and 𝐵 ∈ R with 𝐵 ≥ 𝐿 + 2 if 𝐾 satisfies the following four conditions
+(for geometric interpretation, consult Figure 1). Each condition encodes a specific structural property of fixed-width
+feedforward networks, including layerwise connectivity, normalization of weights, and the representation of bias terms.
+
+• Condition 1. There exists 𝑛 ∈ N divisible by 𝑀 (𝐿 + 2), where 𝑀 is the least common multiple of 𝑑0 and 𝑑 𝐿 , such
+  that 𝐾 is a step kernel with respect to the interval equipartition I𝑛 of [0, 1] into 𝑛 intervals.
+    Notation: I𝑛 is a refinement of the interval equipartition U𝐿+2 := {𝑈 (0) , . . . , 𝑈 (𝐿) , 𝑈 (bias) } of [0, 1] into 𝐿 + 2
+    intervals of length 1/(𝐿 + 2), where each 𝑈 (ℓ ) , ℓ = 0, . . . , 𝐿, is called a layer, and 𝑈 (bias) is called a bias. We call
+    U𝐿+2 the layer partition. For each ℓ, define R 𝑑(ℓ ) := {𝐼 ∈ I𝑛 | 𝐼 ⊆ 𝑈 (ℓ ) }. Here, R 𝑑(ℓ ) consists of 𝑑 := 𝑛/(𝐿 + 2)
+    intervals. The partition R 𝑑(0) is the refinement of the coarser interval equipartition C𝑑in0 of the interval 𝑈 (0) into 𝑑0
+
+
+
+                                                                5
+                          bias ℓ0   ℓ1   ℓ2   ℓ3
+
+                     ℓ3
+                     ℓ2
+                     ℓ1                            𝑦 (source)
+                     ℓ0
+                   bias
+
+                                𝑥 (target)                                                     𝑥 (input)
+               𝐾 (𝑥, 𝑦) ∈ CK (𝐿 = 3, 𝑑0 = 4, 𝑑 𝐿 = 2)                           𝑓 (𝑥) ∈ CS(𝐿 = 3, 𝑑0 = 4, 𝑑 𝐿 = 2)
+
+Figure 1: A computational kernel-signal with 𝑑 = 8. The kernel 𝐾 is nonzero only on blocks linking consecutive layers and
+bias-to-layer blocks; visible stripes in the first/last layer blocks reflect constancy over input/output coarse intervals. The signal 𝑓
+shares the same coarse-interval structure.
+
+
+  intervals of length 1/(𝐿 + 2)𝑑0 called the input partition. The partition R 𝑑(𝐿) is a refinement of the coarser interval
+  equipartition C𝑑out
+                   𝐿
+                      of the interval 𝑈 ( 𝐿) into 𝑑 𝐿 intervals of length 1/(𝐿 + 2)𝑑 𝐿 called the output partition.
+
+• Condition 2. The kernel satisfies 𝐾 (𝑥, 𝑦) = 𝐾 (𝑥, 𝑦 ′ ) whenever 𝑦 and 𝑦 ′ belong to the same interval of C𝑑in0 . Moreover,
+  𝐾 (𝑥, 𝑦) = 𝐾 (𝑥 ′ , 𝑦) whenever 𝑥 and 𝑥 ′ belong to the same interval of C𝑑out
+                                                                              𝐿
+                                                                                 . In addition, 𝐾 (𝑥, 𝑦) = 𝐾 (𝑥, 𝑦 ′ ) whenever
+  𝑦 and 𝑦 ′ belong to 𝑈 (bias) .
+• Condition 3. The kernel satisfies 𝐾 (𝑥, 𝑦) = 0 whenever either 𝑦 ∈ 𝑈 (ℓ ) and 𝑥 ∉ 𝑈 (ℓ+1) for some ℓ ∈ {0, . . . , 𝐿 − 1},
+  or 𝑦 ∈ 𝑈 (bias) and 𝑥 ∈ 𝑈 (0) , or 𝑥 ∈ 𝑈 (bias) and 𝑦 ∉ 𝑈 (bias) .
+• Condition 4. For any 𝑥, 𝑦 ∈ 𝑈 (bias) , 𝐾 (𝑥, 𝑦) = (𝐿 + 2)/𝐵.
+
+We call 𝑑0 the input dimension, 𝑑 𝐿 the output dimension, and refer to 𝑑 = 𝑛/(𝐿 + 2) as the hidden dimension for
+ℓ = 1, . . . , 𝐿 − 1. We call 𝑛 the size of the computational kernel. By CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ), we denote the collection of all
+depth-𝐿 computational kernels as defined above.
+
+Remark 3. Note that for any computational kernel there is a dense neural network that induces it. Similarly, every
+computational input signal is induced by some input to the network.
+
+Computational Signals. While the kernel encodes weights, the signal encodes activations – inputs and propagated
+                                                                                                                  𝐿−1 R (ℓ ) ∪
+values. Given parameters 𝐿, 𝑑0 , 𝑑 𝐿 , a computational signal is any step signal with respect to the partition ∪ℓ=1      𝑑
+C𝑑in0 ∪ C𝑑out ∪ {𝑈 (bias) }. Denote the space of computational signals by CS(𝐿, 𝑑 , 𝑑 ). We define a computational input
+           𝐿
+                                                                                    0  𝐿
+signal as any computational signal satisfying 𝑓 (𝑥) = 1 for all 𝑥 ∈ 𝑈 (bias) and 𝑓 (𝑥) = 0 for all 𝑥 ∉ 𝑈 (0) ∪ 𝑈 (bias) . The
+values of 𝑓 on the intervals of C𝑑in0 are interpreted as the input vector to the network, while the constant value on 𝑈 (bias)
+represents a bias signal that is present at every layer. Condition 4 in the definition of a computational kernel, i.e.,
+𝐾 (𝑥, 𝑦) = (𝐿 + 2)/𝐵 for all 𝑥, 𝑦 ∈ 𝑈 (bias) , ensures that this bias signal is unchanged during propagation, i.e., under
+successive applications of the computational kernel on the signal.
+
+We call a pair in CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) × CS(𝐿, 𝑑0 , 𝑑 𝐿 ) a computational kernel-signal.
+
+Computational Kernel Induced by Network Parameters. Given a dense neural network, one can induce a
+computational kernel on which the 𝐵-IR-MPNN implements the forward propagation of the neural network. Let (W, b)
+be the dense parameters of the neural network Θ (W,b) ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ), with hidden dimension 𝑑 divisible by
+𝑑0 and 𝑑 𝐿 . Denote 𝑛 = 𝑑 (𝐿 + 2). We define the computational kernel 𝐾 = 𝐾 (W,b) ∈ CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) induced by
+Θ (W,b) as follows. For every (𝑥, 𝑦) ∈ [0, 1] 2 :
+
+• 𝐾 (𝑥, 𝑦) = 𝑊𝑖,(1)𝑗 /𝐵 if 𝑦 is in the 𝑗th interval of C𝑑in0 and 𝑥 is in the 𝑖th interval of R 𝑑(1) .
+
+
+                                                                   6
+• 𝐾 (𝑥, 𝑦) = 𝑊𝑖,( 𝐿)                                    (𝐿−1)
+                  𝑗 /𝐵 if 𝑦 is in the 𝑗th interval of R 𝑑     and 𝑥 is in the 𝑖th interval of C𝑑out
+                                                                                                 𝐿
+                                                                                                    .
+
+• For ℓ = 2, . . . , 𝐿 − 1, 𝐾 (𝑥, 𝑦) = 𝑊𝑖,(ℓ𝑗) /𝐵 if 𝑦 is in the 𝑗th interval of R 𝑑(ℓ −1) and 𝑥 is in the 𝑖th interval of R 𝑑(ℓ ) .
+
+• For ℓ = 2, . . . , 𝐿 −1, 𝐾 (𝑥, 𝑦) = 𝑏 𝑖(ℓ ) /𝐵 if 𝑦 is in 𝑈 (bias) and 𝑥 is in the 𝑖th interval of R 𝑑(ℓ ) . Moreover, 𝐾 (𝑥, 𝑦) = 𝑏 𝑖(𝐿) /𝐵
+  if 𝑦 is in 𝑈 (bias) and 𝑥 is in the 𝑖th interval of C𝑑out  𝐿
+                                                               .
+
+• For any 𝑥, 𝑦 ∈ 𝑈 (bias) , 𝐾 (𝑥, 𝑦) = (𝐿 + 2)/𝐵.
+
+Given an input vector x = (𝑥1 , . . . , 𝑥 𝑑0 ) ∈ R𝑑0 to the neural network, we define the induced input signal as the
+computational input signal 𝑓x satisfying 𝑓x (𝑣) = 𝑥 𝑗 whenever 𝑣 is in the 𝑗th interval of C𝑑in0 . In the above construction,
+when writing “the 𝑗th interval of the partition...” we implicitly assume that the intervals are always sorted in increasing
+order.
+
+Networks as MPNNs. We can now state the key equivalence: Lemma 4 shows that the output of a 𝐵-strongly dense
+neural network can be represented as the output of an 𝐿-layer 𝐵-IR-MPNN applied to its induced computational kernel.
+This allows us to import tools from graph theory in Section 4.
+
+Lemma 4. Let (W, b) be the dense parameters of Θ (W,b) ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ). Then, for any input x ∈ R𝑑0 and
+output channel 𝑖 ∈ [𝑑 𝐿 ], we have                                    
+                                    Θ (W,b) (x)𝑖 = Φ 𝐵,𝐿 𝐾 (W,b) , 𝑓x 𝑣 ,
+whenever 𝑣 is in the 𝑖th interval of C𝑑out
+                                        𝐿
+                                           .
+
+
+4     Model Compression
+Modern deep learning models often contain millions or even billions of parameters, making them computationally
+expensive and memory-intensive. Model compression – a family of techniques including pruning [LeCun et al., 1990],
+quantization [Jacob et al., 2018], and distillation [Hinton et al., 2015] – has shown experimentally that smaller networks
+can frequently match the performance of much larger ones. Our approach to compression differs fundamentally from
+these existing methods in objective. While these methods propose empirical heuristics to compress specific trained
+models, our goal is to provide a deterministic guarantee that any network in a given class, regardless of whether it
+was trained or how it was initialized, can be approximated by a bounded-size network. This guarantee will be used in
+Section 5 to establish a formal barrier to the universal approximation power of dense neural networks. The full proofs of
+results from this section are presented in Appendix B.
+
+Computational Cut Distance. In order to define compression, we first need to define a measure of similarity between
+the compressed and original object. In our analysis, two computational kernels are considered equivalent if one
+can be obtained from the other using a “permutation of the vertices” that preserves the layer structure. Next, we
+formalize this idea more accurately. Let S𝐿 denote the set of measure-preserving bijections 𝜙 : [0, 1] → [0, 1] such
+that each 𝑈 (ℓ ) , ℓ = 1, . . . , 𝐿 − 1, is invariant under 𝜙, and 𝜙(𝑥) = 𝑥 for every 𝑥 ∈ 𝑈 (0) ∪ 𝑈 (𝐿) ∪ 𝑈 (bias) .2 Define
+𝐽 𝜙 (𝑥, 𝑦) := 𝐽 (𝜙(𝑥), 𝜙(𝑦)). The computational cut distance between the computational kernel-signals (𝐾, 𝑓 ), (𝐽, 𝑔) is
+defined to be
+                                    comp
+                                   𝛿□ ((𝐾, 𝑓 ), (𝐽, 𝑔)) := inf (∥𝐾 − 𝐽 𝜙 ∥ □ + ∥ 𝑓 − 𝑔 ◦ 𝜙∥ □ ).
+                                                                 𝜙∈ S𝐿
+                     comp
+We define similarly 𝛿□ (𝐾, 𝐽) := inf 𝜙∈ S𝐿 ∥𝐾 − 𝐽 𝜙 ∥ □ . The computational cut distance is a pseudometric. MPNNs
+were shown in Levie [2023] to be Lipschitz continuous with respect to the cut norm, with a further extension in
+Rauchwerger and Levie [2025]. In this work, we adapt the techniques of Levie [2023], Rauchwerger and Levie [2025]
+to our setting in order to obtain an explicit bound on the Lipschitz constant of 𝐵-strongly dense ReLU networks w.r.t.
+the computational cut distance.
+  2 More accurately, 𝜙 is a measure preserving bijection between two co-null sets of [0, 1], as our analysis is always up to sets of measure zero.
+
+Measure preserving means that 𝜇 ( 𝐴) = 𝜇 ( 𝜙 ( 𝐴) ) for measurable subsets 𝐴 of the domain of 𝜙.
+
+
+
+
+                                                                         7
+Theorem 5 (Computational Cut Distance Lipschitz Continuity). Let 𝐵 > 0 and let Φ 𝐵,𝐿 be the 𝐿-layer 𝐵-IR-MPNN.
+Let (𝐾, 𝑓 ), (𝐽, 𝑔) ∈ CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) × CS(𝐿, 𝑑0 , 𝑑 𝐿 ) be two computational kernel-signals. Let
+
+                               Out𝐾 , 𝑓 := 1𝑈 (𝐿) Φ 𝐵,𝐿 (𝐾, 𝑓 ),       Out 𝐽 ,𝑔 := 1𝑈 ( 𝐿) Φ 𝐵,𝐿 (𝐽, 𝑔).
+
+Then
+                                                                            comp                  
+                                   ∥Out𝐾 , 𝑓 − Out 𝐽 ,𝑔 ∥ □ ≤ 2 𝐿 𝐵 𝐿 𝛿□           (𝐾, 𝑓 ), (𝐽, 𝑔) .
+
+Note that ∥Out𝐾 , 𝑓 − Out 𝐽 ,𝑔 ∥ □ is a signal cut norm, as (Out𝐾 , 𝑓 − Out 𝐽 ,𝑔 ) : [0, 1] → R.
+
+Computational Kernel Weak Regularity Lemma. Theorem 6 establishes that any computational kernel, regardless
+of its original size or complexity, can be approximated by a smaller, structured kernel. Specifically, we utilize a variant
+of the weak regularity lemma [Frieze and Kannan, 1999] for kernels [László and Szegedy, 2007] to approximate any
+kernel by a step kernel whose complexity – measured by the number of steps in its partition – depends solely on the
+desired error 𝜖 in the computational cut distance. Building on techniques from Levie [2023], Rauchwerger and Levie
+[2025], we refine this step kernel to preserve the specific neural bipartite layer structure, as well as the fixed input and
+output dimensions.
+
+Theorem 6. Let 𝐾 ∈ CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) be an 𝐿-layer computational kernel. For any 𝜖 > 0, there exists an 𝐿-layer
+computational kernel 𝐾 ′ ∈ CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) with hidden dimension
+                                                          l      2
+                                                                      m
+                                                 𝑑 = 8𝑀 𝐿 22⌈16/𝜖 ⌉ /𝜖 ,
+
+                                                                          comp
+where 𝑀 is the least common multiple of 𝑑0 and 𝑑 𝐿 , such that 𝛿□                (𝐾, 𝐾 ′ ) < 𝜖.
+
+This structural reduction allows us to represent the information of an arbitrarily wide network using a much smaller
+hidden dimension. When combined with the stability analysis of the forward pass presented in Theorem 5 – showing that
+𝐵-IR-MPNNs are Lipschitz continuous with respect to the computational cut distance – this leads directly to our main
+compression result. Corollary 7 provides a uniform bound on the size of the approximating network that is independent
+of the original network’s width.
+
+Corollary 7 (Network Architecture Approximation). Let 𝐿, 𝑑0 , 𝑑 𝐿 ∈ N with 𝐿 ≥ 2, let 𝐵 ≥ 𝐿 + 2, and 𝜖 > 0. Then,
+for any network Θ ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) there is a network Θ′ ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) with hidden dimension
+                                                                                                 
+                                          1 2⌈ (16( (𝐿+2) 𝑑𝐿 ) 2 (2𝐵) 2𝐿 )/𝜖 2 ⌉
+                            𝑑 = 8𝑀 𝐿         ·2                                  (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 ,
+                                          𝜖
+
+such that ∥Θ − Θ′ ∥ ∞ < 𝜖.
+
+Why Not Monte Carlo Compression? A natural alternative to our approach would be to approximate dense networks
+by randomly subsampling hidden layer neurons. This approach is often called randomized numerical linear algebra.
+However, Monte Carlo sampling does not yield uniform guarantees: the approximation is only successful in high
+probability, and the event of success depends on the input to the network. Hence, different inputs would require different
+events of subsampled networks, and the intersection of all events in general can be the empty set, preventing simultaneous
+control of the approximation error on all inputs. In contrast, the weak regularity lemma provides deterministic and
+input-independent compression guarantees.
+
+
+5      Implications for Approximation
+The compression phenomenon established in Section 4 reveals that any dense ReLU network – no matter how large –
+can be approximated by a bounded-size network in the computational cut distance. This finding hints at a fundamental
+limitation: if expressive power saturates at a finite level of architectural complexity, then sufficiently large networks
+cannot continue to gain representational capacity merely by adding width. In this section, we make this intuition precise
+by identifying explicit conditions under which dense deep ReLU networks fail to be universal approximators.
+
+
+                                                                   8
+VC-Dimension Based Lower Bounds on Expressivity. The first step is to relate functional approximation capacity to
+combinatorial complexity. Recall that for a hypothesis class H of Boolean functions on [0, 1] 𝑑 , the VC-dimension is
+the largest number of points that H can shatter. When H consists of thresholded outputs of a ReLU network of fixed
+architecture but variable weights, Theorem 8.7 in Anthony and Bartlett [2009] provides the bound VCdim(H ) ≤ 𝑐 · 𝑊 2 ,
+where 𝑊 is the total number of weights and 𝑐 > 0 is a universal constant independent of the architecture. This implies
+that representational capacity grows at most quadratically in the number of parameters. Theorem 7 of Harvey et al.
+[2017] presents an explicit bound that improves upon the classical VC-dimension bound, showing that the universal
+constant 𝑐 is in fact small.
+
+The next theorem provides a quantitative lower bound on the number of computational units necessary for universal
+approximation, building on [Yarotsky, 2017, Theorem 4(a)]. Our contribution lies in adapting this bound to our setting,
+and expressing it in terms of a single implicit constant. Recall that Lip(𝑑0 , 𝑑 𝐿 ) is the space of 1-Lipschitz continuous
+functions [0, 1] 𝑑0 → R𝑑𝐿 bounded by 1.
+
+Theorem 8. For any 𝜖 ∈ (0, 1/3), a ReLU network architecture capable of approximating every function 𝑓 ∈ Lip(𝑑0 , 𝑑 𝐿 )
+with error bounded by 𝜖 must have at least 𝑐 −1/2 (6𝜖) −𝑑0 /2 parameters, where 𝑐 is the absolute constant defined above.
+
+Approximation Limits of Dense Neural Networks. We now connect the above expressivity lower bound with the
+compression result. Theorem 8 gives a lower bound on the number of parameters required for an 𝜖 approximation, while
+Corollary 7 shows that neural networks that achieve 𝜖 approximation effectively have a uniformly bounded number of
+parameters. As it turns out, in certain settings, the lower bound in Theorem 8 is higher than the upper bound entailed by
+Corollary 7. This shows that dense neural networks are not universal approximators of Lip(𝑑0 , 𝑑 𝐿 ).
+
+Theorem 9 (Expressivity Bound of Strongly Dense Neural Networks). Let 𝐿, 𝑑 𝐿 ∈ N with 𝐿 ≥ 2, let 𝐵 ≥ 𝐿 + 2, and let
+𝑐 be the constant from Theorem 8. Let 𝑑0 satisfy
+
+                     𝑑0 ≥ 17 log2 𝑐1/2 𝐿 3 (𝐿 + 2) 2 𝑑 4𝐿 (2𝐵) 2𝐿 + 17 · 214 (𝐿 + 2) 2 𝑑 2𝐿 (2𝐵) 2𝐿 + 306.
+                                                                 
+
+Then N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) is not a universal approximator of Lip(𝑑0 , 𝑑 𝐿 ).
+
+We interpret Theorem 9 as follows. Since general neural networks of a fixed depth are universal approximators of
+C(𝑑0 , 𝑑 𝐿 ), they are also universal approximators of Lip(𝑑0 , 𝑑 𝐿 ). One might expect that neural networks with linear
+layers bounded by some universal constant 𝐶 > 1 in their induced infinity norm, i.e. ∥𝑊 (ℓ ) ∥ ∞ < 𝐶, are also universal
+approximators of Lip(𝑑0 , 𝑑 𝐿 ).3 In our definition of strongly dense neural networks, if one chooses 𝐵 = (𝐿 + 2)𝐶 then
+the infinity norms of the linear layers are bounded by 𝐶. Hence, one might naively anticipate that N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 )
+is a universal approximator of Lip(𝑑0 , 𝑑 𝐿 ). However, Theorem 9 shows that this is false, given that the input dimension
+is large enough (but still independent of 𝑛).
+
+Connection to Double Descent and Modern Deep Learning. Our results in Theorem 9 offer, partially, a theoretical
+lens through which to view the double descent phenomenon. Classical bias-variance logic suggests that as the parameter
+count surpasses the sample size, the model’s variance should diverge,
+                                                                              100
+causing the model to overfit the data and impair the generalization capacity.
+
+
+
+
+                                                                                                Train accuracy (%)
+However, we show that for strongly dense networks, the realizable capacity     80
+actually plateaus, which supports the empirical observation that there is
+no unbounded growth of variance. We note that in practical deep learning,      60
+the density of the neural network is often implicitly enforced through
+techniques such as weight decay or layer normalization.                        40                          Standard
+                                                                                                                                                 Dense
+Experiments. We empirically validate our findings on MNIST using                                                     20
+                                                                                                                          10 0   10 1    10 2       10 3
+one-hidden-layer ReLU networks trained with Adam; full details are in                                                             Hidden width
+Appendix D. Standard networks closely approximate the target function,
+    3 In fact, as far as we know, the following is an open question: There exists a constant 𝐶 > 1, such that the space of neural networks with linear
+
+layers 𝑊 (ℓ) having induced infinity norm ∥𝑊 (ℓ) ∥ ∞ < 𝐶 is a universal approximator of Lip(𝑑0 , 𝑑𝐿 ). We note that networks with sort activations
+are known to satisfy this property [Anil et al., 2018, Tanielian et al., 2020].
+
+
+
+                                                                          9
+with training accuracy stabilizing around 98–99%. Dense networks—where weights are clamped to [−10/𝑑𝑖−1 , 10/𝑑𝑖−1 ]
+after each update—fail to do so, plateauing at 90–91% across all widths, supporting that density constraints create a
+hard barrier to approximation.
+
+
+6    Conclusion
+We presented a framework linking graph-regularity-based compression of dense ReLU networks with VC-dimension
+lower bounds on expressivity. The combination yields explicit conditions under which depth- and weight-bounded
+dense networks cease to be universal, revealing a saturation effect: beyond a certain scale, width no longer increases
+representational capacity. These findings suggest that expressivity is often governed more by architectural structure
+than by size alone. While our present results apply to fully connected feedforward architectures, extending our
+compression-based analysis to structured families – such as convolutional or attention-based networks – offers a
+promising direction for developing a unified theory for expressivity saturation in deep learning.
+
+
+Acknowledgement
+RL is supported by a grant from the United States-Israel Binational Science Foundation (BSF), Jerusalem, Israel, and
+the United States National Science Foundation (NSF), (NSF-BSF, grant No. 2024660), and by the Israel Science
+Foundation (ISF grant No. 1937/23). SJ acknowledges support from the Humboldt Foundation.
+
+
+References
+Cem Anil, James Lucas, and Roger Baker Grosse. Sorting out lipschitz function approximation. In Int. Conference on
+  Machine Learning (ICML), 2018.
+
+Martin Anthony and Peter L. Bartlett. Neural Network Learning: Theoretical Foundations. Cambridge University Press,
+ USA, 1st edition, 2009. ISBN 052111862X.
+
+Sanjeev Arora, Rong Ge, Behnam Neyshabur, and Yi Zhang. Stronger generalization bounds for deep nets via a
+  compression approach, 2018.
+
+Jan Böker, Ron Levie, Ningyuan Huang, Soledad Villar, and Christopher Morris. Fine-grained expressivity of graph
+  neural networks. Advances in Neural Information Processing Systems (NIPS), 2023.
+
+Yu Cheng, Duo Wang, Pan Zhou, and Tao Zhang. Model compression and acceleration for deep neural networks: The
+  principles, progress, and challenges. IEEE Signal Processing Magazine, 35(1):126–136, 2018.
+
+G. Cybenko. Approximation by superpositions of a sigmoidal function. Mathematics of Control, Signals and Systems, 2
+  (4):303–314, 1989.
+
+Utku Evci, Trevor Gale, Jacob Menick, Pablo Samuel Castro, and Erich Elsen. Rigging the lottery: Making all tickets
+  winners. In Hal Daumé III and Aarti Singh, editors, Int. Conference on Machine Learning (ICML), volume 119 of
+  Proceedings of Machine Learning Research, pages 2943–2952. PMLR, 13–18 Jul 2020.
+
+Ben Finkelshtein, undefinedsmail undefinedlkan Ceylan, Michael Bronstein, and Ron Levie. Learning on large graphs
+  using intersecting communities. In Advances in Neural Information Processing Systems (NIPS), 2024.
+
+Jonathan Frankle and Michael Carbin. The lottery ticket hypothesis: Finding sparse, trainable neural networks. In Int.
+  Conf. on Learning Representations (ICLR), 2019.
+
+A. Frieze and R. Kannan. Quick approximation to matrices and applications. Combinatorica, 19(2):175–220, Feb. 1999.
+
+J. Gilmer, S. S. Schoenholz, P. F. Riley, O. Vinyals, and G. E. Dahl. Neural message passing for quantum chemistry. Int.
+   Conference on Machine Learning (ICML), pages 1263–1272, 2017a.
+
+
+                                                          10
+Justin Gilmer, Samuel S. Schoenholz, Patrick F. Riley, Oriol Vinyals, and George E. Dahl. Neural message passing for
+  quantum chemistry. In Int. Conference on Machine Learning (ICML), pages 1263–1272, 2017b.
+
+M. Gori, G. Monfardini, and F. Scarselli. A new model for learning in graph domains. In IJCNN, 2005.
+
+Song Han, Jeff Pool, John Tran, and William Dally. Learning both weights and connections for efficient neural network.
+  Advances in Neural Information Processing Systems (NIPS), 28, 2015.
+
+Nick Harvey, Christopher Liaw, and Abbas Mehrabian. Nearly-tight VC-dimension bounds for piecewise linear neural
+  networks. In Satyen Kale and Ohad Shamir, editors, Proceedings of the 2017 Conference on Learning Theory,
+  volume 65 of Proceedings of Machine Learning Research, pages 1064–1068. PMLR, 07–10 Jul 2017.
+
+Zheng He, Zeke Xie, Quanzhi Zhu, and Zengchang Qin. Sparse double descent: Where network pruning aggravates
+  overfitting. In Int. Conference on Machine Learning (ICML), 06 2022. doi: 10.48550/arXiv.2206.08684.
+
+Daniel Herbst and Stefanie Jegelka. Higher-Order Graphon Neural Networks: Approximation and Cut Distance. Int.
+  Conf. on Learning Representations (ICLR), 2025. Spotlight Paper. arXiv:2503.14338.
+
+Geoffrey Hinton, Oriol Vinyals, and Jeffrey Dean. Distilling the knowledge in a neural network. In NIPS Deep Learning
+  and Representation Learning Workshop, 2015.
+
+Torsten Hoefler, Dan Alistarh, Tal Ben-Nun, Nikoli Dryden, and Alexandra Peste. Sparsity in deep learning: pruning
+  and growth for efficient inference and training in neural networks. Journal of Machine Learning Research, 22(1),
+  January 2021. ISSN 1532-4435.
+
+Kurt Hornik. Approximation capabilities of multilayer feedforward networks. Neural Networks, 4(2):251–257, 1991.
+  ISSN 0893-6080.
+
+Benoit Jacob, Skirmantas Kligys, Bo Chen, Menglong Zhu, Matthew Tang, Andrew Howard, Hartwig Adam, and
+  Dmitry Kalenichenko. Quantization and training of neural networks for efficient integer-arithmetic-only inference.
+  IEEE Conference on Computer Vision and Pattern Recognition (CVPR), pages 2704–2713, 2018.
+
+Arthur Jacot, Franck Gabriel, and Clément Hongler. Neural tangent kernel: Convergence and generalization in neural
+  networks. In Advances in Neural Information Processing Systems (NIPS), volume 31. Curran Associates, Inc., 2018.
+
+Tian Jin, Michael Carbin, Daniel M. Roy, Jonathan Frankle, and Gintare Karolina Dziugaite. Pruning’s effect on
+  generalization through the lens of training and regularization. In Advances in Neural Information Processing Systems
+  (NIPS), Advances in Neural Information Processing Systems (NIPS), Red Hook, NY, USA, 2022. Curran Associates
+  Inc. ISBN 9781713871088.
+
+Jonathan Kouchly, Ben Finkelshtein, Michael Bronstein, and Ron Levie. Efficient learning on large graphs using a
+  densifying regularity lemma. Int. Conf. on Learning Representations (ICLR), 2025.
+
+Yann LeCun, John S Denker, and Sara A Solla. Optimal Brain Damage. In Advances in Neural Information Processing
+  Systems (NIPS), volume 2, pages 598–605. Morgan Kaufmann, 1990.
+
+Yann LeCun, Yoshua Bengio, and Geoffrey Hinton. Deep Learning. Nature, 521(7553):436–444, 2015. doi:
+  10.1038/nature14539.
+
+Namhoon Lee, Thalaiyasingam Ajanthan, and Philip H. S. Torr. Snip: Single-shot Network Pruning based on Connection
+  Sensitivity. In Int. Conf. on Learning Representations (ICLR). OpenReview.net, 2019.
+
+Moshe Leshno, Vladimir Ya. Lin, Allan Pinkus, and Shimon Schocken. Multilayer feedforward networks with a
+ nonpolynomial activation function can approximate any function. Neural Networks, 6(6):861–867, 1993. ISSN
+ 0893-6080. doi: https://doi.org/10.1016/S0893-6080(05)80131-5.
+
+Ron Levie. A Graphon-Signal Analysis of Graph Neural Networks. Advances in Neural Information Processing Systems
+
+
+                                                         11
+  (NIPS), 2023.
+
+L. Lovász. Large Networks and Graph Limits, volume 60 of Colloquium Publications. American Mathematical Society,
+   2012.
+
+Lovász László and Balázs Szegedy. Szemerédi’s Lemma for the Analyst. Geometric and Functional Analysis, 17:
+  252–270, 04 2007. doi: 10.1007/s00039-007-0599-6.
+
+Cláudio M. S. Medeiros and Guilherme A. Barreto. An efficient method for pruning the multilayer perceptron based
+  on the correlation of errors. In Joaquim Marques de Sá, Luı́s A. Alexandre, W lodzis law Duch, and Danilo
+  Mandic, editors, Artificial Neural Networks – ICANN 2007, pages 219–228, Berlin, Heidelberg, 2007. Springer Berlin
+  Heidelberg. ISBN 978-3-540-74690-4.
+
+Gaurav Menghani. Efficient Deep Learning: A Survey on Making Deep Learning Models Smaller, Faster, and Better.
+ ACM Computing Surveys, 55(12), March 2023. ISSN 0360-0300. doi: 10.1145/3578938.
+
+C. Merkwirth and T. Lengauer. Automatic generation of complementary descriptors with molecular graph networks.
+  Journal of Chemical Information and Modeling, 45(5):1159–1168, 2005.
+
+H. N. Mhaskar. Neural Networks for Optimal Approximation of Smooth and Analytic Functions. Neural Computation,
+  8(1):164–177, 1996.
+
+Decebal Constantin Mocanu, Elena Mocanu, Peter Stone, Phuong H Nguyen, Madeleine Gibescu, and Antonio Liotta.
+  Scalable Training of Artificial Neural Networks with Adaptive Sparse Connectivity Inspired by Network Science.
+  Nature Communications, 9(1):2383, 2018. doi: 10.1038/s41467-018-04316-3.
+
+Elena-Alexandra Peste. Efficiency and Generalization of Sparse Neural Networks. Phd thesis, Institute of Science and
+  Technology Austria, 2023.
+
+Allan Pinkus. Approximation theory of the MLP model in neural networks. Acta Numerica, 8:143–195, 1999. doi:
+  10.1017/S0962492900002919.
+
+Levi Rauchwerger and Ron Levie. A Note on Graphon-Signal Analysis of Graph Neural Networks. arXiv preprint,
+  2025.
+
+Levi Rauchwerger, Stefanie Jegelka, and Ron Levie. Generalization, Expressivity, and Universality of Graph Neural
+  Networks on Attributed Graphs. Int. Conf. on Learning Representations (ICLR), 2025.
+
+Emanuele Rossi, Bertrand Charpentier, Francesco Di Giovanni, Fabrizio Frasca, Stephan Günnemann, and Michael
+ Bronstein. Edge directionality improves learning on heterophilic graphs. In Proceedings of Machine Learning
+ Research, 05 2023. doi: 10.48550/arXiv.2305.10498.
+
+Ugo Tanielian, Maxime Sangnier, and Gérard Biau. Approximating lipschitz continuous functions with groupsort neural
+  networks. International Conference on Artificial Intelligence and Statistics, abs/2006.05254, 2020.
+
+Neil C. Thompson, Kristjan H. Greenewald, Keeheon Lee, and Gabriel F. Manso. The Computational Limits of Deep
+  Learning. Ninth Workshop on Computing within Limits, abs/2007.05558, 2020.
+
+Keyulu Xu, Weihua Hu, Jure Leskovec, and Stefanie Jegelka. How Powerful are Graph Neural Networks? Int. Conf. on
+  Learning Representations (ICLR), 2019.
+
+Dmitry Yarotsky. Error bounds for approximations with deep ReLU networks. Neural Networks, 94:103–114, 2017.
+ ISSN 0893-6080.
+
+
+
+
+                                                        12
+A     Proof of Deep Neural Networks as MPNNs
+Lemma 4 shows that the output of a 𝐵-strongly dense neural network can be represented as the output of an 𝐿-layer
+𝐵-IR-MPNN applied to its induced computational kernel. To prove Lemma 4, we first show Lemma 10, which states
+that the 𝐵-IR-MPNN applied to a computational kernel-signal is stationary on 𝑈 (bias) .
+
+Lemma 10. Let (𝐾 (W,b) , 𝑓 ) ∈ CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) × CS(𝐿, 𝑑0 , 𝑑 𝐿 ) be a computational kernel-signal. Then, the hidden
+representations of the 𝐵-IR-MPNN satisfy:
+
+                                               𝑓 (ℓ ) |𝑈 (bias) ≡ 1,   for ℓ = 0, . . . , 𝐿.
+
+That is, the hidden representations are constant and share the same value on 𝑈 (bias) .
+
+Proof. We prove the claim using induction. Recall that by the definition of computational kernel for any 𝑣 ∈ 𝑈 (bias) :
+                                              (
+                                                (𝐿 + 2)/𝐵 if 𝑢 ∈ 𝑈 (bias) ,
+                                   𝐾 (𝑣, 𝑢) =
+                                                0             otherwise.
+
+
+Induction Base.      By the definitions of computational signals and of the 𝐵-IR-MPNN, we have
+
+                                                              𝑓 (0) |𝑈 (bias) ≡ 1.
+
+
+Induction Assumption.        We assume that 𝑓 (ℓ −1) |𝑈 (bias) ≡ 1 for 0 < ℓ ≤ 𝐿.
+
+Induction Step.     By the definition of the 𝐵-IR-MPNN and the induction assumption, for any 𝑣 ∈ 𝑈 (bias) :
+                                                        ∫                                    
+                                    (ℓ )                                       (ℓ −1)
+                                   𝑓 (𝑣) := 𝐵 · ReLU              𝐾 (𝑣, 𝑢) 𝑓          (𝑢)𝑑𝑢
+                                                           [0,1]
+                                                       ∫                                       
+                                                                                   (ℓ −1)
+                                           = 𝐵 · ReLU             (𝐿 + 2)/𝐵 𝑓             (𝑢)𝑑𝑢
+                                                         𝑈 (bias)
+                                                               ∫                           
+                                                                             (ℓ −1)
+                                           = (𝐿 + 2) · ReLU                𝑓        (𝑢)𝑑𝑢
+                                                                  𝑈 (bias)
+                                                               ∫             
+                                           = (𝐿 + 2) · ReLU                𝑑𝑢
+                                                                  𝑈 (bias)
+                                                                  
+                                           = (𝐿 + 2) · 𝜇 𝑈 (bias) = 1.
+
+This concludes the proof.
+
+Now, we use Lemma 10 to show Lemma 4.
+
+Lemma 4. Let (W, b) be the dense parameters of Θ (W,b) ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ). Then, for any input x ∈ R𝑑0 and
+output channel 𝑖 ∈ [𝑑 𝐿 ], we have                                    
+                                    Θ (W,b) (x)𝑖 = Φ 𝐵,𝐿 𝐾 (W,b) , 𝑓x 𝑣 ,
+whenever 𝑣 is in the 𝑖th interval of C𝑑out
+                                        𝐿
+                                           .
+
+
+Proof. We now show that for ℓ = 0, . . . , 𝐿 the activation of the ℓth hidden layer h𝑖(ℓ ) in channel 𝑖 ∈ [𝑑ℓ ] of the network
+Θ (W,b) is equal to the hidden 𝐵-IR-MPNN representation 𝑓 (ℓ ) (𝑣) whenever 𝑣 is in the 𝑖th interval of P (ℓ ) , when
+                                                        
+                                                        
+                                                         C𝑑in0 , if ℓ = 0,
+                                               P (ℓ ) := R 𝑑(ℓ ) if 0 < ℓ < 𝐿,
+                                                        
+                                                        
+                                                        
+                                                         C out if ℓ = 𝐿.
+                                                        
+                                                         𝑑𝐿
+
+                                                                       13
+Recall that by the definition of the computational kernel, for any 𝑣 in the 𝑖th interval of P (ℓ ) , ℓ ∈ [𝐿]:
+
+                     
+                      𝑏 (ℓ ) /𝐵 if 𝑢 ∈ 𝑈 (bias) and 𝑣 is in the 𝑖th interval of P (ℓ ) ,
+                      𝑖 (ℓ )
+                     
+                     
+           𝐾 (𝑣, 𝑢) = 𝑊𝑖, 𝑗 /𝐵 if 𝑢 is in the 𝑗th interval of P (ℓ −1) and 𝑣 is in the 𝑖th interval of P (ℓ ) ,
+                     
+                     0
+                     
+                                 otherwise.
+                     
+We prove the statement inductively.
+
+Induction Base.      Let ℓ = 0 and 𝑖 ∈ [𝑑0 ], then, for any 𝑣 in the 𝑖th interval of P (0) and x = (𝑥1 , . . . , 𝑥 𝑑0 ) ∈ R𝑑0
+
+                                                                 𝑓 (0) (𝑣) = 𝑓x (𝑣) = 𝑥𝑖 = h𝑖(0) .
+
+
+Induction Assumption.         For layers ℓ = 1, . . . , 𝐿, channels 𝑖 ∈ [𝑑ℓ −1 ] and for any 𝑣 in the 𝑖th interval of P (ℓ −1) ,
+assume that
+                                                                        𝑓 (ℓ −1) (𝑣) = h𝑖(ℓ −1) .
+
+
+Induction Step. Denote the 𝑗th interval of the partition P (ℓ ) by 𝐼 𝑗(ℓ ) . Then, for any 𝑣 in the 𝑖th interval of the partition
+P (ℓ ) :
+                                  ∫                          
+           𝑓 (ℓ ) (𝑣) := 𝐵 · ReLU     𝐾 (𝑣, 𝑢) 𝑓 (ℓ −1) (𝑢)𝑑𝑢
+                                             [0,1]
+
+                                                ∑︁               ∫                                             ∫
+                                                                              (𝑊𝑖,(ℓ𝑗) /𝐵) 𝑓 (ℓ −1) (𝑢)𝑑𝑢 +                 (𝑏 𝑖(ℓ ) /𝐵) 𝑓 (ℓ −1) (𝑢)𝑑𝑢 ®®
+                                 ©                                                                                                                       ª
+                      = 𝐵 · ReLU­­
+                                                                     (ℓ −1)
+                                           (ℓ −1)                 𝐼𝑗                                             𝑈 (bias)
+                                      «𝐼 𝑗          ∈ P (ℓ −1)                                                                                          ¬
+                                        ∑︁               ∫                                        ∫
+                                                                       𝑊𝑖,(ℓ𝑗) 𝑓 (ℓ −1) (𝑢)𝑑𝑢 +                𝑏 𝑖(ℓ ) 𝑓 (ℓ −1) (𝑢)𝑑𝑢 ®® =: (∗)
+                             ©                                                                                                         ª
+                      = ReLU­­
+                                                            (ℓ −1)
+                                  (ℓ −1)                   𝐼𝑗                                       𝑈 (bias)
+                               «𝐼 𝑗        ∈ P (ℓ −1)                                                                                   ¬
+
+By the induction assumption 𝑓 (ℓ −1) (𝑣) = h𝑖(ℓ −1) on any 𝑣 in the 𝑖th interval of P (ℓ −1) and since by definition
+𝑓x |𝑈 (bias) ≡ 1, then, 𝑓 (ℓ −1) |𝑈 (bias) ≡ 1 by Lemma 10 and. Thus
+
+                                     𝑑ℓ −1 ∫                                ∫
+                                    © ∑︁                 (ℓ ) (ℓ −1)
+                         (∗) = ReLU­                   𝑊𝑖, 𝑗 h 𝑗     𝑑𝑢 +             𝑏 𝑖(ℓ ) 𝑑𝑢 ®
+                                                                                                 ª
+                                                (ℓ −1)                         (bias)
+                                              𝐼                              𝑈
+                                    « 𝑗=1 𝑗                                                      ¬
+                                     𝑑 ℓ −1                                                     
+                                    © ∑︁ (ℓ ) (ℓ −1)
+                             = ReLU­        𝑊𝑖, 𝑗 h 𝑗        · 𝜇 𝐼 𝑗(ℓ −1) + 𝑏 𝑖(ℓ ) 𝜇 𝑈 (bias) ® =: (∗∗)
+                                                                                                     ª
+
+                                    « 𝑗=1                                                            ¬
+                                                      
+Recall that 𝜇 𝑈 (bias) = 1/(𝐿 + 2) and 𝜇 𝐼 𝑗(ℓ −1) = 1/(𝑑ℓ −1 (𝐿 + 2)) by the definition of the computational kernel.
+                      
+
+Therefore
+                                           𝑑ℓ −1                  ∫                         ∫
+                                         © ∑︁ (ℓ ) (ℓ −1)
+                              (∗∗) = ReLU­       𝑊𝑖, 𝑗 h 𝑗                    𝑑𝑢 + 𝑏 𝑖(ℓ )
+                                                                                                           ª
+                                                                                                        𝑑𝑢 ®
+                                                                       (ℓ −1)                    (bias)
+                                                                     𝐼                        𝑈
+                                         « 𝑗=1                         𝑗
+                                                                                                           ¬
+                                           𝑑ℓ −1                  ∫
+                                           ∑︁                                             1
+                                   = ReLU­       𝑊𝑖,(ℓ𝑗) h (ℓ −1)
+                                                                              𝑑𝑢 +            𝑏 𝑖(ℓ ) ®
+                                         ©                                                            ª
+                                                           𝑗
+                                                                     𝐼𝑗
+                                                                       (ℓ −1)          𝐿  + 2
+                                         « 𝑗=1                                                        ¬
+                                                               𝑑ℓ −1
+                                                   1           ∑︁                                  
+                                   = ReLU ­                              𝑊𝑖(ℓ𝑗 ) h (ℓ −1)
+                                                                                          + 𝑏 𝑖(ℓ ) ® = h𝑖(ℓ ) .
+                                          ©                                                           ª
+                                            𝑑ℓ −1 (𝐿 + 2) 𝑗=1                      𝑗
+                                          «                                                           ¬
+
+
+                                                                                     14
+This concludes the proof since
+
+                                     Θ (W,b) (x)𝑖 = h𝑖(𝐿) = 𝑓 (𝐿) (𝑣) = Φ 𝐵,𝐿 𝐾 (W,b) , 𝑓x 𝑣 ,
+                                                                                           
+
+whenever 𝑣 is in the 𝑖th interval of C𝑑out
+                                        𝐿
+
+
+
+
+B      Proofs of Model Compression
+Here we prove our Lipschitz continuity of 𝐵-IR-MPNN (Theorem 5), our weak regularity lemma (Theorem 6), and our
+compression result (Corollary 7).
+
+Lipschitz Continuity of MPNNs. MPNNs were shown to be Lipschitz continuous with respect to the cut norm
+in Levie [2023], with a further extension in Rauchwerger and Levie [2025]. In this work, we adapt the techniques
+developed in Levie [2023] to our setting in order to obtain an explicit bound on the Lipschitz constant.
+
+We first recall some useful lemmas.
+
+Lemma 11 (Levie [2023], Equation (9)). Let 𝑓 : [0, 1] → R be measurable. Then
+                                                       1
+                                                         ∥ 𝑓 ∥1 ≤ ∥ 𝑓 ∥□ ≤ ∥ 𝑓 ∥1 .
+                                                       2
+
+Denote by 𝐿 + [0, 1] the space of measurable functions 𝑓 : [0, 1] → [0, 1].
+
+Lemma 12 (Levie [2023], Lemma F.5/Lovász [2012], Lemma 8.10). Let 𝑄 : [0, 1] 2 → R be measurable. Then
+                                                 ∫
+                            ∥𝑄∥ □ =      sup          𝑓 (𝑥)𝑄(𝑥, 𝑦)𝑔(𝑦)d𝑥d𝑦 ,
+                                                 𝑓 ,𝑔∈ 𝐿 + [0,1]     [0,1] 2
+
+where the supremum is attained for some 𝑓 , 𝑔 ∈ 𝐿 + [0, 1] with values in {0, 1}.
+
+Lemma 13 (Cut Norm Lipschitz Continuity). Let 𝐵 ∈ R and Φ 𝐵,𝐿 be the 𝐿-layer 𝐵-IR-MPNN and (𝐾, 𝑓 ), (𝐽, 𝑔) be
+two attributed Kernels. Then,
+
+                               ∥Φ 𝐵,𝐿 (𝐾, 𝑓 ) − Φ 𝐵,𝐿 (𝐽, 𝑔) ∥ □ ≤ 2 𝐿 𝐵 𝐿 (∥ 𝑓 − 𝑔∥ □ + ∥𝐾 − 𝐽 ∥ □ ).
+
+Proof. Recall that for a kernel-signal (𝑇, 𝑞)
+
+                                                     Φ 𝐵,𝐿 (𝑇, 𝑞) (𝑥) := 𝑞 (𝐿) (𝑥),
+
+and for ℓ ∈ [𝐿],
+                                                                    ∫                                
+                                       𝑞 (ℓ ) (𝑥) := 𝐵 · ReLU                  𝑇 (𝑥, 𝑦)𝑞 (ℓ −1) (𝑦) d𝑦 .
+                                                                       [0,1]
+
+
+
+We first show that for every ℓ, ∥ 𝑓 (ℓ ) ∥ ∞ , ∥𝑔 (ℓ ) ∥ ∞ ≤ 𝐵ℓ . Indeed, for any 𝑥 ∈ [0, 1]
+                                                              ∫
+                                           | 𝑓 (ℓ ) (𝑥)| ≤ 𝐵         𝐾 (𝑥, 𝑦) 𝑓 (ℓ −1) (𝑦)d𝑦 .
+                                                                   [0,1]
+
+Hence, by Hölder’s inequality
+                                             | 𝑓 (ℓ ) (𝑥)| ≤ 𝐵∥ 𝑓 (ℓ −1) ∥ 1 ≤ 𝐵∥ 𝑓 (ℓ −1) ∥ ∞ ,
+
+
+                                                                         15
+so we also have
+                                                           ∥ 𝑓 (ℓ ) ∥ ∞ ≤ 𝐵∥ 𝑓 (ℓ −1) ∥ ∞ .
+By solving a recurrence sequence, and using ∥ 𝑓 (0) ∥ ∞ ≤ 1, we get ∥ 𝑓 (ℓ ) ∥ ∞ ≤ 𝐵ℓ .
+
+Next, we consider
+                                                      ∫                                      ∫                          
+                        𝑓 (ℓ ) (𝑥) − 𝑔 (ℓ ) (𝑥) = 𝐵          𝐾 (𝑥, 𝑦) 𝑓 (ℓ −1) (𝑦) d𝑦 −           𝐽 (𝑥, 𝑦)𝑔 (ℓ −1) (𝑦) d𝑦 ,
+
+and decompose this difference as
+           ∫                               ∫
+               𝐾 (𝑥, 𝑦) 𝑓 (ℓ −1) (𝑦) d𝑦 −      𝐽 (𝑥, 𝑦)𝑔 (ℓ −1) (𝑦) d𝑦
+                            ∫                                             ∫
+                                           (ℓ −1)         (ℓ −1)
+                                                                            𝐾 (𝑥, 𝑦) − 𝐽 (𝑥, 𝑦) 𝑓 (ℓ −1) (𝑦) d𝑦.
+                                                                                              
+                         =      𝐽 (𝑥, 𝑦) 𝑓        (𝑦) − 𝑔        (𝑦) d𝑦 +
+
+By the triangle inequality,
+
+                                       ∥Φ 𝐵,ℓ (𝐾, 𝑓 ) − Φ 𝐵,ℓ (𝐽, 𝑔) ∥ □
+                                                 ∫
+                                           ≤𝐵∥        𝐽 (𝑥, 𝑦) ( 𝑓 (ℓ −1) (𝑦) − 𝑔 (ℓ −1) (𝑦)) d𝑦∥ □                             (4)
+                                                     ∫
+                                              + 𝐵∥ (𝐾 − 𝐽) (𝑥, 𝑦) 𝑓 (ℓ −1) (𝑦) d𝑦∥ □ .                                          (5)
+
+We bound Equation (4), using Lemma 11, by
+             ∫                                                    ∫
+                             (ℓ −1)         (ℓ −1)
+           ∥    𝐽 (𝑥, 𝑦) ( 𝑓        (𝑦) − 𝑔        (𝑦)) d𝑦∥ □ ≤ ∥   𝐽 (𝑥, 𝑦) ( 𝑓 (ℓ −1) (𝑦) − 𝑔 (ℓ −1) (𝑦)) d𝑦∥ 1
+                                                                ∫ ∫
+                                                              ≤        𝐽 (𝑥, 𝑦) ( 𝑓 (ℓ −1) (𝑦) − 𝑔 (ℓ −1) (𝑦)) d𝑦 𝑑𝑥
+                                                                ∫ ∫
+                                                              ≤        𝐽 (𝑥, 𝑦) ( 𝑓 (ℓ −1) (𝑦) − 𝑔 (ℓ −1) (𝑦)) d𝑦d𝑥.
+
+Hence, by Hölder’s inequality,
+                  ∫                                                   ∫ ∫
+                ∥     𝐽 (𝑥, 𝑦) ( 𝑓 (ℓ −1) (𝑦) − 𝑔 (ℓ −1) (𝑦)) d𝑦∥ □ ≤   1                 ( 𝑓 (ℓ −1) (𝑦) − 𝑔 (ℓ −1) (𝑦)) d𝑦𝑑𝑥
+
+                                                                            ≤ ∥ 𝑓 (ℓ −1) − 𝑔 (ℓ −1) ∥ 1
+                                                                            ≤ 2∥ 𝑓 (ℓ −1) − 𝑔 (ℓ −1) ∥ □
+
+where the last inequality is due to Lemma 11.
+
+We bound Equation (5) as follows. Let 𝑞 = 𝑓 (ℓ −1) /𝐵ℓ −1 . By the application of ReLU, and by the bound ∥ 𝑓 (ℓ −1) ∥ ∞ ≤
+𝐵ℓ −1 , the function 𝑓 ℓ −1 maps [0, 1] to [0, 𝐵ℓ −1 ], so 𝑞 : [0, 1] → [0, 1]. Let 𝑄 := 𝐾 − 𝐽 : [0, 1] 2 → [−2, 2]. Our goal
+               ∫
+is to bound ∥ 𝑄(𝑥, 𝑦)𝑞(𝑦)𝑑𝑦∥ □ . Let 𝑆 ⊂ [0, 1] be the set for which the cut norm is realized. The existence of such an
+𝑆 is guaranteed by Lemma 12. Hence,
+                                    ∫                           ∫ ∫
+                                  ∥    𝑄(𝑥, 𝑦)𝑞(𝑦)𝑑𝑦∥ □ =             1𝑆 (𝑥)𝑄(𝑥, 𝑦)𝑞(𝑦)𝑑𝑦𝑑𝑥.
+
+Using Lemma 12, we get                          ∫ ∫
+                                            |          1𝑆 (𝑥)𝑄(𝑥, 𝑦)𝑞(𝑦)𝑑𝑦𝑑𝑥| ≤ ∥𝑄∥ □ .
+
+Combining the bounds, we obtain
+
+                                  ∥ 𝑓 (ℓ ) − 𝑔 (ℓ ) ∥ □ ≤ 2𝐵∥ 𝑓 (ℓ −1) − 𝑔 (ℓ −1) ∥ □ + 𝐵ℓ ∥𝐾 − 𝐽 ∥ □ .
+
+
+                                                                         16
+Hence,
+
+                                  ∥ 𝑓 (ℓ ) − 𝑔 (ℓ ) ∥ □ ≤ 2𝐵∥ 𝑓 (ℓ −1) − 𝑔 (ℓ −1) ∥ □ + 𝐵ℓ ∥𝐾 − 𝐽 ∥ □ .
+
+Now, denote by 𝑐 (ℓ ) bounds on ∥ 𝑓 (ℓ ) − 𝑔 (ℓ ) ∥ □ , for ℓ = 1, . . . , 𝐿, which satisfy
+
+                                                      𝑐 (ℓ ) = 2𝐵𝑐 (ℓ −1) + 𝐵ℓ 𝑟,
+
+where 𝑟 = ∥𝐾 − 𝐽 ∥ □ . Solving this recurrence sequence, we get
+                                                                 ℓ −1
+                                                                 ∑︁
+                                        𝑐 (ℓ ) = 2ℓ 𝐵ℓ 𝑐 (0) +          2 𝑘 𝐵 𝑘 𝑟 ≤ 2ℓ 𝐵ℓ (𝑐 (0) + 𝑟).
+                                                                 𝑘=0
+
+Hence,
+                                    ∥ 𝑓 (ℓ ) − 𝑔 (ℓ ) ∥ □ ≤ 2ℓ 𝐵ℓ (∥ 𝑓 (0) − 𝑔 (0) ∥ □ + ∥𝐾 − 𝐽 ∥ □ ).
+
+
+
+The following result is a consequence of Lemma 13.
+
+Theorem 5 (Computational Cut Distance Lipschitz Continuity). Let 𝐵 > 0 and let Φ 𝐵,𝐿 be the 𝐿-layer 𝐵-IR-MPNN.
+Let (𝐾, 𝑓 ), (𝐽, 𝑔) ∈ CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) × CS(𝐿, 𝑑0 , 𝑑 𝐿 ) be two computational kernel-signals. Let
+
+                                 Out𝐾 , 𝑓 := 1𝑈 (𝐿) Φ 𝐵,𝐿 (𝐾, 𝑓 ),           Out 𝐽 ,𝑔 := 1𝑈 ( 𝐿) Φ 𝐵,𝐿 (𝐽, 𝑔).
+
+Then
+                                                                                  comp                  
+                                     ∥Out𝐾 , 𝑓 − Out 𝐽 ,𝑔 ∥ □ ≤ 2 𝐿 𝐵 𝐿 𝛿□               (𝐾, 𝑓 ), (𝐽, 𝑔) .
+
+Proof. Consider an arbitrary measure preserving bijection 𝜙 ∈ S𝐿 that preserves the layer structure. Applying Lemma
+13 to the pair (𝐾, 𝑓 ) and (𝐽 𝜙 , 𝑔 ◦ 𝜙) yields
+                                                                                                       
+                       ∥Φ 𝐵,𝐿 (𝐾, 𝑓 ) − Φ 𝐵,𝐿 (𝐽 𝜙 , 𝑔 ◦ 𝜙) ∥ □ ≤ 2 𝐿 𝐵 𝐿 ∥𝐾 − 𝐽 𝜙 ∥ □ + ∥ 𝑓 − 𝑔 ◦ 𝜙∥ □ .
+
+Since the above inequality holds for every 𝜙 ∈ S𝐿 , taking the 𝜙 that minimizes the right-hand-side gives
+                                                                              comp             
+                          ∥Φ 𝐵,𝐿 (𝐾, 𝑓 ) − Φ 𝐵,𝐿 (𝐽 𝜙 , 𝑔 ◦ 𝜙) ∥ □ ≤ 2 𝐿 𝐵 𝐿 𝛿□ (𝐾, 𝑓 ), (𝐽, 𝑔) .                         (6)
+
+Denote ℎ = Φ 𝐵,𝐿 (𝐾, 𝑓 ) − Φ 𝐵,𝐿 (𝐽 𝜙 , 𝑔 ◦ 𝜙). Note that the signal cut norm in the left-hand side of (6) is either realized
+on the set 𝑆 of point where ℎ is positive, or the set of points where it is negative. Hence, multiplying ℎ by 1𝑈 ( 𝐿) can
+only decrease the cut norm of ℎ, as the positive and negative supports of 1𝑈 ( 𝐿) ℎ are subsets of the positive and negative
+supports of ℎ. Therefore,
+
+                     ∥ 1𝑈 (𝐿) Φ 𝐵,𝐿 (𝐾, 𝑓 ) − 1𝑈 (𝐿) Φ 𝐵,𝐿 (𝐽 𝜙 , 𝑔 ◦ 𝜙) ∥ □ ≤ 2 𝐿 𝐵 𝐿 𝛿□ (𝐾, 𝑓 ), (𝐽, 𝑔) .
+                                                                                        comp             
+
+
+Lastly, note that by definition, any measure preserving bijection 𝜙 ∈ S𝐿 keeps 𝑈 (𝐿) unchanged, so
+
+                          ∥ 1𝑈 (𝐿) Φ 𝐵,𝐿 (𝐾, 𝑓 ) − 1𝑈 ( 𝐿) Φ 𝐵,𝐿 (𝐽 𝜙 , 𝑔 ◦ 𝜙) ∥ □ = ∥Out𝐾 , 𝑓 − Out 𝐽 ,𝑔 ∥ □ ,
+
+which completes the proof.
+
+The Regularity Lemma for computational Kernels. Let us recall some definitions. Let 𝜇 denote the Lebesgue
+measure
+Ð𝑘        on [0, 1]. A partition of [0, 1] is a sequence P𝑘 = {𝑃1 , . . . , 𝑃 𝑘 } of disjoint measurable sets such that
+  𝑗=1 𝑃 𝑗 = [0, 1]. The partition is called an equipartition if 𝜇(𝑃𝑖 ) = 𝜇(𝑃 𝑗 ) for all 𝑖, 𝑗 ∈ [𝑘]. We write 1𝑆 for the
+indicator function of a set 𝑆. We define step functions as follows.
+
+
+
+
+                                                                        17
+                                                         2 of step functions [0, 1] 2 ↦→ R over the partition P to be the
+Definition 14. Given a partition P𝑛 , define the space S P𝑛
+                                                                                                               𝑛
+space of functions of the form                         ∑︁
+                                         𝐹 (𝑥, 𝑦) =           𝑐 𝑖, 𝑗 1 𝑃𝑖 ×𝑃 𝑗 (𝑥, 𝑦),
+                                                              𝑖, 𝑗 ∈ [𝑛]×[𝑛]
+
+for any choice of {𝑐 𝑖, 𝑗 ∈ R}𝑖, 𝑗 ∈ [𝑛] × [𝑛] .
+
+Denote the space of kernels 𝐾 : [0, 1] 2 → [−1, 1] by W1 . Notice that any step kernel with respect to P𝑛 is in the
+               2 ∩ W . We define the projection of a kernel onto a partition as its blockwise average over the parts of
+intersection S P𝑛
+                     1
+the partition.
+                                                                                                                        2
+Definition 15. Let P𝑛 = {𝑃1 , . . . , 𝑃𝑛 } be a partition of [0, 1], and 𝐾 ∈ W1 be a kernel. The projection of 𝐾 upon S P 𝑛
+is the step kernel 𝐾 P𝑛 that attains the value
+                                                             ∫
+                                                    1
+                                𝐾 P𝑛 (𝑥, 𝑦) =                        𝐾 (𝑥, 𝑦)1 𝑃𝑖 ×𝑃 𝑗 (𝑥, 𝑦)d𝑥d𝑦,
+                                               𝜇(𝑃𝑖 )𝜇(𝑃 𝑗 ) [0,1] 2
+
+for every (𝑥, 𝑦) ∈ 𝑃𝑖 × 𝑃 𝑗 and 1 ≤ 𝑖, 𝑗 ≤ 𝑛.
+
+The projection is also called the stepping operator. The following theorem, provided in Rauchwerger and Levie [2025],
+Appendix B, is an adaptation of the “analyst’s version” of the weak regularity lemma for kernels, originally introduced
+in László and Szegedy [2007].
+
+Theorem 16 (Rauchwerger and Levie [2025], Theorem B.5). Let 𝜖 > 0. For every kernel 𝐾 ∈ W1 there exists a
+                                      2
+partition P𝑘 of [0, 1] into 𝑘 = 22⌈1/𝜖 ⌉ sets, and a step kernel 𝐾 𝑘 ∈ S P
+                                                                         2 ∩ W , such that
+                                                                           𝑘
+                                                                              1
+
+                                                                 ∥𝐾 − 𝐾 𝑘 ∥ □ ≤ 𝜖 .
+
+
+The following lemma is given in Rauchwerger and Levie [2025] as Lemma B.10.
+                                                                                 2 ∩ W . Then, the supremum of
+Lemma 17. Let P𝑛 = {𝑃1 , . . . , 𝑃𝑛 } be a partition of [0, 1], and Let 𝑉, 𝑅 ∈ S P𝑛
+                                                                                      1
+                                                             ∫ ∫
+                                                                                         
+                                                   sup                 𝑉 (𝑥, 𝑦) − 𝑅(𝑥, 𝑦) 𝑑𝑥𝑑𝑦
+                                               𝑆,𝑇 ⊂ [0,1]   𝑆    𝑇
+
+is attained for 𝑆, 𝑇 of the form                              Ø                          Ø
+                                                         𝑆=           𝑃𝑖 ,        𝑇=            𝑃𝑗,
+                                                              𝑖∈𝑠                        𝑗 ∈𝑡
+
+where 𝑡, 𝑠 ⊂ [𝑛].
+
+As part of the proof of Theorem 6, we first show that any computational kernel can be approximated by a coarse step
+kernel, where the partition underlying the coarse kernel is not an equipartition in general. Hence, the last step of the
+proof involves approximating the coarse kernel by one based on an equipartition. For this, we recall an equatizing lemma
+from Levie [2023]. Inspecting the proof of Lemma B.1 from Levie [2023], we can reformulate the lemma as follows.
+
+Lemma 18 (Levie [2023], Equitizing partition). Let P𝑘 be a partition of [𝑎, 𝑏] into 𝑘 sets (generally not of the same
+measure). Then, for any 𝑛 > 𝑘 there exists an equipartition E 𝑛 of [0, 1] into 𝑛 sets which satisfies the following. For
+                    𝑗
+each 𝑗 ∈ [𝑘], let E 𝑛 be the set of all parts of E 𝑛 that are subsets of 𝑃 𝑗 ∈ P𝑘 . Denote
+                                                                             𝑘
+                                                                             Ø
+                                                                                     𝑗
+                                                                  T𝑛 :=            E𝑛 ,
+                                                                             𝑗=1
+
+and R 𝑛 = E 𝑛 \ T𝑛 . Then, there exists an integer ℎ ≤ 𝑘 such that 𝜇(∪R 𝑛 ) = ℎ/𝑛 and 𝜇(∪T𝑛 ) = 1 − ℎ/𝑛. We call T𝑛 the
+refinement parts of E 𝑛 and R 𝑛 the remainder parts.
+
+For completeness, we repeat the proof.
+
+
+                                                                             18
+Proof. Let P𝑘 = {𝑃1 , . . . , 𝑃 𝑘 } be a measurable partition of [0, 1] and let 𝑛 > 𝑘. For each 𝑖 ∈ [𝑘], subdivide 𝑃𝑖 into
+measurable sets 𝑃𝑖,1 , . . . , 𝑃𝑖,𝑚𝑖 as follows. If 𝜇(𝑃𝑖 ) < 1/𝑛, set 𝑚 𝑖 = 1 and 𝑃𝑖,1 = 𝑃𝑖 . Otherwise, choose 𝑚 𝑖 ≥ 2 such
+that 𝜇(𝑃𝑖, 𝑗 ) = 𝑛1 for 𝑗 ∈ [𝑚 𝑖 − 1] and 𝜇(𝑃𝑖,𝑚𝑖 ) ≤ 𝑛1 . We refer to 𝑃𝑖,𝑚𝑖 as the remainder of 𝑃𝑖 . Define the sequence of
+parts of measure 1/𝑛 to be
+
+                          Q := {𝑃1,1 , . . . , 𝑃1,𝑚1 −1 , 𝑃2,1 , . . . , 𝑃2,𝑚2 −1 , . . . , 𝑃 𝑘,1 , . . . , 𝑃 𝑘,𝑚𝑘 −1 },
+                                                                                                  Ð 
+where for indices 𝑖 with 𝑚 𝑖 = 1 there is no contribution in Q. Let 𝑙 := |Q|. By construction, 𝜇      Q = 𝑛𝑙 . Let
+     Ð𝑘
+Π := 𝑖=1 𝑃𝑖,𝑚𝑖 . Then 𝜇(Π) = 1 − 𝑛𝑙 = 𝑛ℎ , for ℎ := 𝑛 − 𝑙. Since each 𝑃𝑖,𝑚𝑖 has measure at most 1/𝑛 and there are at
+most 𝑘 such sets, we have ℎ ≤ 𝑘.
+
+Next, partition Π into ℎ measurable sets Π1 , . . . , Πℎ each of measure exactly 1/𝑛. Define
+
+                                                      E 𝑛 := Q ∪ {Π1 , . . . , Πℎ }.
+
+Then E 𝑛 is a partition of [0, 1] into 𝑛 sets, each of measure 1/𝑛. Let
+
+                                                T𝑛 := Q,            R 𝑛 := {Π1 , . . . , Πℎ }.
+
+By construction,
+                                        Ø
+                                               ℎ                          Ø      ℎ
+                                    𝜇  T𝑛 = 1 − ,                      𝜇        R𝑛 = ,               ℎ ≤ 𝑘,
+                                                𝑛                                   𝑛
+and each element of T𝑛 is contained in some 𝑃𝑖 ∈ P𝑘 .
+
+The following lemma is a basic result from measure theory.
+
+Lemma 19. For any partition P of [𝑎, 𝑏], there is a measure preserving bijection 𝜙 (between co-null sets of [0, 1]) that
+maps P into an interval partition J of [𝑎, 𝑏]. Namely, every 𝐽 ∈ J is of the form 𝐽 = 𝜙 −1 (𝑃), up to a null-set, for
+some 𝑃 ∈ P.
+
+Proof.
+Í       First, let [𝑎, 𝑏] = [0, 1]. Let P = {𝑃1 , 𝑃2 , . . . } be the partition of [0, 1] into measurable, disjoint sets, with
+  𝑖 𝜇(𝑃 𝑖 ) = 1. For each 𝑖, let 𝑞 𝑖 = 𝜇(𝑃𝑖 ). Define intervals
+
+                                                                                                 𝑛−1
+                                                                                               h ∑︁           𝑛
+                                                                                                             ∑︁      i
+                           𝐽1 = [0, 𝑞 1 ],      𝐽2 = [𝑞 1 , 𝑞 1 + 𝑞 2 ],      ...,      𝐽𝑛 =           𝑞𝑘,         𝑞𝑘 .
+                                                                                                 𝑘=1         𝑘=1
+
+This gives an interval partition J = {𝐽1 , 𝐽2 , . . . } of [0, 1]. For any two measurable sets 𝐴, 𝐵 ⊂ [0, 1] of equal measure,
+there exists a measure-preserving bijection 𝑓 : 𝐴 → 𝐵, up to null sets. Applying this to each 𝑃𝑖 and 𝐽𝑖 , we obtain bijections
+𝜙𝑖 : 𝐽𝑖 → 𝑃𝑖 which are measure-preserving (up to null sets). Define 𝜙(𝑥) = 𝜙𝑖 (𝑥) for 𝑥 ∈ 𝐽𝑖 . Then 𝜙 : [0, 1] → [0, 1]
+is a measure-preserving bijection up to null sets. Moreover, by construction, each 𝐽𝑖 = 𝜙 −1 (𝑃𝑖 ) up to a null set. If
+the original interval is [𝑎, 𝑏] ≠ [0, 1], let 𝑇 : [0, 1] → [𝑎, 𝑏] be the affine map 𝑇 (𝑥) = 𝑎 + (𝑏 − 𝑎)𝑥. Then the map
+𝜙˜ := 𝑇 ◦𝜙◦𝑇 −1 : [𝑎, 𝑏] → [𝑎, 𝑏] is a measure-preserving bijection (up to null sets) that maps P to an interval partition of
+[𝑎, 𝑏], completing the proof. For any measurable set 𝐵 ⊂ [𝑎, 𝑏], let 𝐴 := 𝑇 −1 (𝐵) ⊂ [0, 1]. Then 𝜙˜−1 (𝐵) = 𝑇 (𝜙 −1 ( 𝐴)),
+and the measure on [𝑎, 𝑏] satisfies 𝜇 [𝑎,𝑏] ( 𝜙˜−1 (𝐵)) = (𝑏 − 𝑎) 𝜇(𝜙 −1 ( 𝐴)) = (𝑏 − 𝑎) 𝜇( 𝐴) = 𝜇 [𝑎,𝑏] (𝐵), so 𝜙˜ is
+measure-preserving. Furthermore, by construction, 𝜙˜ maps P to an interval partition of [𝑎, 𝑏], completing the
+proof.
+
+The proof strategy of Theorem 6 uses techniques from Levie [2023], Corollary B.11 and Rauchwerger and Levie [2025],
+Theorem 4.9, both extending techniques from László and Szegedy [2007]. We begin by applying the weak regularity
+lemma for kernels (Theorem 16) to obtain an initial approximation of the graph-induced kernel. We then project this
+kernel onto the partition provided by Lemma 18, yielding a structured kernel approximation that corresponds to a
+computational graph.
+
+
+
+                                                                       19
+Theorem 6. Let 𝐾 ∈ CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) be an 𝐿-layer computational kernel. For any 𝜖 > 0, there exists an 𝐿-layer
+computational kernel 𝐾 ′ ∈ CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) with hidden dimension
+                                                          l      2
+                                                                      m
+                                                 𝑑 = 8𝑀 𝐿 22⌈16/𝜖 ⌉ /𝜖 ,
+
+                                                                            comp
+where 𝑀 is the least common multiple of 𝑑0 and 𝑑 𝐿 , such that 𝛿□                  (𝐾, 𝐾 ′ ) < 𝜖.
+
+Throughout the proof, we ensure that the structure of a partition underlying a computational kernel is preserved under
+the application of the weak regularity lemma.
+
+Proof. Let 𝜖 > 0, and let 𝐾 be a computational kernel based on the partition Q. First, apply Theorem 16 to the
+computational kernel 𝐾 with accuracy 𝜖/4. This yields a step kernel 𝐾 𝑘 , and a measurable partition P𝑘 of [0, 1], such
+that
+                                                 2
+                                      𝑘 = 22⌈16/𝜖 ⌉ ,     ∥𝐾 − 𝐾 𝑘 ∥ □ ≤ 𝜖/4.
+The partition P𝑘 is a general measurable partition (not necessarily an interval partition, and not respecting the structure
+of a computational kernel).
+
+Let L𝑟 be the partition of [0, 1], with 𝑟 = 𝐿 + 𝑑0 + 𝑑 𝐿 which is the union of:
+
+    • all intermediate layers {𝑈 (1) , . . . , 𝑈 ( 𝐿−1) },
+
+    • the bias layer {𝑈 (bias) },
+
+    • the coarse input partition C𝑑in0 ,
+
+    • the coarse output partition C𝑑out
+                                     𝐿
+                                        .
+
+We call L𝑟 the layer partition. Let P be the coarsest common refinement of P𝑘 and L𝑟 . We have
+                                                                           2
+                                            |P | ≤ |P𝑘 | |L𝑟 | = 22⌈16/𝜖 ⌉ (𝐿 + 𝑑0 + 𝑑 𝐿 ),
+
+and P is a measurable (not interval) partition.
+
+By Lemma 17, the cut norm ∥𝐾 𝑘 − 𝐾 P ∥ □ is attained on sets of the form
+                                                Ø                 Ø
+                                          𝑆=        𝑃𝑖 ,     𝑇=        𝑃𝑗,
+                                                        𝑃𝑖 ∈𝑠                   𝑃 𝑗 ∈𝑡
+
+for some 𝑠, 𝑡 ⊂ P. Using the definition of the projected kernel,
+                                                      ∫ ∫
+                                    ∥𝐾 𝑘 − 𝐾 P ∥ □ =        (𝐾 𝑘 − 𝐾 P ) (𝑥, 𝑦) 𝑑𝑥 𝑑𝑦
+                                                       𝑆 𝑇
+                                                      ∫ ∫
+                                                   =        (𝐾 𝑘 − 𝐾) (𝑥, 𝑦) 𝑑𝑥 𝑑𝑦
+                                                                 𝑆   𝑇
+                                                             = ∥𝐾 𝑘 − 𝐾 ∥ □ .
+
+Therefore,
+                                       ∥𝐾 − 𝐾 P ∥ □ ≤ ∥𝐾 − 𝐾 𝑘 ∥ □ + ∥𝐾 𝑘 − 𝐾 P ∥ □ ≤ 𝜖/2.
+
+Note that the parts of P𝑘 that intersect 𝑈 (0) constitute a refinement of C𝑑in0 . Similarly, the parts of P that intersect 𝑈 (𝐿)
+constitute a refinement of C𝑑out 𝐿
+                                     . Note as well that 𝐾 is constant on every set of the form 𝐶 × 𝐷 or 𝐷 × 𝐶 where 𝐶 is a
+part in C𝑑in0 or C𝑑out
+                    𝐿
+                       and 𝐷  is any    part of Q (the partition underlying 𝐾) that intersect (or equivalently, is a subset of)
+  (1)
+𝑈 ∪...∪𝑈         ( 𝐿−1) ∪𝑈  (bias) .
+
+
+
+                                                                     20
+Hence, by the definition of projection and since P refines L𝑟 , the kernel 𝐾 P has the same property: it is constant
+on every set of the form 𝐶 × 𝐷 or 𝐷 × 𝐶 where 𝐶 is a part in C𝑑in0 or C𝑑out      𝐿
+                                                                                   and 𝐷 is any part of P that intersect
+  (1)
+𝑈 ∪...∪𝑈       ( 𝐿−1)                             ′
+                      . We define the partition P as the partition containing as parts the intervals of C𝑑in0 and C𝑑out and all
+                                                                                                                     𝐿
+parts of P outside C𝑑in0 and C𝑑out . By the above analysis, 𝐾   is a step graphon with respect to P ′.
+                                𝐿
+                                                              P
+
+
+For each ℓ = 1, . . . , 𝐿 − 1, let P (ℓ ) be the set of parts of P ′ that intersect (or equivalently are subsets of) 𝑈 (ℓ ) . Similarly
+define P (bias) . Note that P (ℓ ) is a partition of 𝑈 (ℓ ) and P (bias) a partition of 𝑈 (bias) . Note as well that
+                                                                          2
+                                           |P (bias) |, |P (ℓ ) | ≤ 22⌈16/𝜖 ⌉ (𝐿 + 𝑑0 + 𝑑 𝐿 ).
+
+Let 𝑀 ∈ N be the lowest common multiple of 𝑑0 and 𝑑 𝐿 . Let 𝑛 = 𝐶 (𝐿 + 2) 𝑀 for some 𝐶 ∈ N to be specified later.
+Now, apply the equatizing partition lemma (Lemma 18), to equatize P (ℓ ) into 𝐶 𝑀 parts E𝐶(ℓ𝑀
+                                                                                            )
+                                                                                              , each of measure 1/𝑛.
+                   (bias)
+Similarly, define E𝐶 𝑀 . Here, we restrict the choice of 𝐶 to satisfy
+
+                                                  𝐶𝑀 >           max             |P (ℓ ) |.
+                                                           ℓ=1,...,𝐿−1, (bias)
+
+By the equatizing lemma, there exist numbers ℎ (ℓ ) ≤ |P (ℓ ) | such that the first 𝐶 𝑀 − ℎ (ℓ ) parts of E𝐶(ℓ𝑀
+                                                                                                              )
+                                                                                                                are the refinement
+parts T𝐶(ℓ𝑀) , and the last ℎ (ℓ ) parts of E𝐶(ℓ𝑀
+                                                )
+                                                  are the remainder parts R𝐶(ℓ𝑀 )
+                                                                                  . Similarly, we consider ℎ (bias) < |P (bias) |,
+T𝐶(bias)
+   𝑀     and R𝐶(bias)
+                  𝑀 .
+
+Denote E 𝑗 = ∪ℓ E𝐶(ℓ𝑀 )
+                        ∪ E𝐶(bias)     in    out                                                      (ℓ )    (bias)
+                               𝑀 ∪ C𝑑0 ∪ C𝑑𝐿 , where 𝑗 = |E 𝑗 | = 𝐶 𝑀 𝐿 + 𝑑 0 + 𝑑 𝐿 . Denote R = ∪ℓ R 𝐶 𝑀 ∪ R 𝐶 𝑀
+and 𝑅 = ∪R. By construction, the projection 𝐾 E 𝑗 of 𝐾 upon E 𝑗 is equal to 𝐾 P for every (𝑥, 𝑦) outside the set
+( [0, 1] × 𝑅) ∪ (𝑅 × [0, 1]). Note that
+                                                                         ∑︁
+                          𝜇(( [0, 1] × 𝑅) ∪ (𝑅 × [0, 1])) ≤ 2 ℎ (bias) +    ℎ (ℓ ) /𝑛 ≤ 2𝐿|P ′ |/𝑛.
+                                                                                  
+                                                                                     ℓ
+
+Moreover, the pointwise distance between 𝐾 P and 𝐾 E 𝑗 for any (𝑥, 𝑦) ∈ ( [0, 1] × 𝑅) ∪ (𝑅 × [0, 1]) is bounded by 2.
+Hence,
+                                   ∥𝐾 P − 𝐾 E 𝑗 ∥ □ ≤ ∥𝐾 P − 𝐾 E 𝑗 ∥ 1 ≤ 4𝐿|P ′ |/𝑛.
+
+Hence, by the triangle inequality
+                                                ∥𝐾 − 𝐾 E 𝑗 ∥ □ ≤ 𝜖/2 + 4𝐿|P ′ |/𝑛.
+We retroactively choose 𝑛 such that 4𝐿|P ′ |/𝑛 ≤ 𝜖/2. For this, we choose
+                                                              &        2
+                                                                          '
+                                                                22⌈16/𝜖 ⌉
+                                             𝑛 = 8𝑀 𝐿 (𝐿 + 2)               ,
+                                                                    𝜖
+
+which leads to
+                                                      2                                       2
+                            4𝐿|P ′ |/𝑛 ≤ 4𝐿22⌈16/𝜖 ⌉ (𝐿 + 𝑑0 + 𝑑 𝐿 )/𝑛 ≤ 4𝐿22⌈16/𝜖 ⌉ (𝐿 + 2𝑀)/𝑛
+                                               ≤ (𝐿 + 2𝑀)𝜖/2(𝑀 𝐿 + 2𝑀) ≤ 𝜖/2,
+while still 𝑛 being of the form 𝐶 (𝐿 + 2) 𝑀 for some 𝐶 ∈ N
+
+Next, we map the equipartition E 𝑗 into an interval equipartition which underlies a computational kernel, i.e., which
+refines L𝑟 . For this, using Lemma 19, for each ℓ ∈ {1, . . . , 𝐿 − 1, (bias)} apply a measure preserving bijection 𝜙 (ℓ )
+mapping E𝐶(ℓ𝑀 )
+                into the interval equipartition I𝐶(ℓ𝑀) of 𝑈 (ℓ ) . Denote
+
+                                       J = C𝑑in0 ∪ I𝐶(1)            (𝐿−1)
+                                                      𝑀 ∪ . . . ∪ I𝐶 𝑀    ∪ I𝐶(bias) out
+                                                                               𝑀 ∪ C𝑑𝐿 ,
+
+and note that J is an interval equipartition of [0, 1] into 𝑛 parts underlying a computational kernel, i.e., refines L𝑟 .
+Consider the corresponding measure preserving bijection 𝜙 over [0, 1], defined by
+                                  (
+                                    𝜙 (ℓ ) (𝑥), 𝑥 ∈ 𝑈 (ℓ ) , for some ℓ = 1, . . . , 𝐿 − 1, (bias)
+                           𝜙(𝑥) =
+                                    𝑥           otherwise.
+
+                                                                   21
+Consider the kernel 𝐾 𝜙 (𝑥, 𝑦) = 𝐾 (𝜙(𝑥), 𝜙(𝑦)), and note that (𝐾 𝜙 ) J is a computational kernel in CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 )
+with hidden dimension                                    &           '
+                                                                  2
+                                                           22⌈16/𝜖 ⌉
+                                               𝑑 = 8𝑀 𝐿                .
+                                                               𝜖
+By the above construction, this kernel satisfies the commutation property between the measure-preserving bijection and
+the projection
+                                                     (𝐾 𝜙 ) J = (𝐾 E 𝑗 ) 𝜙 .
+This directly leads to
+                                                       comp
+                                                      𝛿□      (𝐾, 𝐾 J ) ≤ 𝜖 .
+
+
+
+Network Architecture Approximation. We now use Theorem 5 and Theorem 6 to prove Corollary 7. The proof
+proceeds by first enlarging the computational graph output dimension by adding unconnected computational units to
+the output layer and inducing it into a kernel. We then establish a computational kernel approximation via Theorem 6.
+Lastly, we use the Lipschitz continuity of graph network of Theorem 5, to bound the output.
+
+Corollary 7 (Network Architecture Approximation). Let 𝐿, 𝑑0 , 𝑑 𝐿 ∈ N with 𝐿 ≥ 2, let 𝐵 ≥ 𝐿 + 2, and 𝜖 > 0. Then,
+for any network Θ ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) there is a network Θ′ ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) with hidden dimension
+                                                                                                 
+                                          1 2⌈ (16( (𝐿+2) 𝑑𝐿 ) 2 (2𝐵) 2𝐿 )/𝜖 2 ⌉
+                            𝑑 = 8𝑀 𝐿         ·2                                  (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 ,
+                                          𝜖
+
+such that ∥Θ − Θ′ ∥ ∞ < 𝜖.
+
+Proof. Let x ∈ [0, 1] 𝑑0 be any input vector and let 𝑓x ∈ CS(𝐿, 𝑑0 , 𝑑 𝐿 ) be its induced input signal given the parameters
+𝐿, 𝑑0 , and 𝑑 𝐿 . Additionally, let 𝐾 ∈ CK (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) denote the computational kernel of Θ.
+
+Let 𝑈 ( 𝐿) be the output layer of 𝐾 (of length 1/(𝐿 + 2)) and C𝑑out𝐿
+                                                                     be the coarse output partition of 𝐾, which partitions
+the interval 𝑈 ( 𝐿) into 𝑑 𝐿 intervals of length 1/(𝐿 + 2)𝑑 𝐿 , i.e. the Lebesgue measure 𝜇 of each of the intervals is
+1/(𝐿 + 2)𝑑 𝐿 .
+
+By Theorem 6, for any 𝜖 > 0, there exists a computational kernel 𝐾 ′ with hidden dimension
+                                         &             2 2     2𝐿   2
+                                                                                        '
+                                           22⌈ (16(𝐿+2) 𝑑𝐿 (2𝐵) )/𝜖 ⌉ (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿
+                              𝑑 = 8𝑀 𝐿                                                    .                             (7)
+                                                                  𝜖
+
+approximating 𝐾 in cut norm with error
+                                             comp                        𝜖
+                                           𝛿□       (𝐾, 𝐾 ′ ) <                     .
+                                                                  (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿
+By Remark 3 (for any computational kernel there is a dense neural network that induces it) there exists a dense network
+Θ′ ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ), with hidden dimension given by (7), that induces 𝐾 ′ .
+
+Let 𝑗 ∈ [𝑑 𝐿 ] be any output channel and denote the 𝑗th interval of C𝑑out
+                                                                       𝐿
+                                                                          by 𝐼 out
+                                                                               𝑗 . By Lemma 4, we have
+
+                                                                   Θ′ (x) 𝑗 = Φ 𝐵,𝐿 𝐾 ′ , 𝑓x 𝑣 ,
+                                                                                           
+                                Θ(x) 𝑗 = Φ 𝐵,𝐿 𝐾, 𝑓x 𝑣 ,
+
+whenever 𝑣 ∈ 𝐼 out
+               𝑗 . Thus,
+
+                                Θ(x) 𝑗 − Θ′ (x) 𝑗 = Φ 𝐵,𝐿 (𝐾, 𝑓x ) (𝑣) − Φ 𝐵,𝐿 (𝐾 ′ , 𝑓x ) (𝑣)
+
+
+
+
+                                                                  22
+whenever 𝑣 ∈ 𝐼 out                          out
+               𝑗 . Therefore, for any 𝑣 ∈ 𝐼 𝑗 :
+
+                                                                1       
+           Φ 𝐵,𝐿 (𝐾, 𝑓x ) (𝑣) − Φ 𝐵,𝐿 (𝐾 ′ , 𝑓x ) (𝑣) =              𝜇 𝐼 out Φ 𝐵,𝐿 (𝐾, 𝑓x ) (𝑣) − Φ 𝐵,𝐿 (𝐾 ′ , 𝑓x ) (𝑣)
+                                                                                                                         
+                                                                         𝑗
+                                                          𝜇 𝐼 out
+                                                              𝑗
+                                                                         ∫
+                                                                                   Φ 𝐵,𝐿 (𝐾, 𝑓x ) (𝑢) − Φ 𝐵,𝐿 (𝐾 ′ , 𝑓x ) (𝑢) 𝑑𝑢
+                                                                                                                             
+                                                     = (𝐿 + 2)𝑑 𝐿
+                                                                           𝐼 out
+                                                                             𝑗
+
+                                                     ≤ (𝐿 + 2)𝑑 𝐿 ∥Out𝐾 , 𝑓x − Out𝐾 ′ , 𝑓x ∥ □ ,
+
+where
+                            Out𝐾 , 𝑓x := 1𝑈 (𝐿) Φ 𝐵,𝐿 (𝐾, 𝑓x ),        Out𝐾 ′ , 𝑓x := 1𝑈 ( 𝐿) Φ 𝐵,𝐿 (𝐾 ′ , 𝑓x ).
+Lastly, by the Lipschitz property of the 𝐵-IR-MPNN (Theorem 5)
+                                                                                               comp
+                        (𝐿 + 2)𝑑 𝐿 ∥Out𝐾 , 𝑓x − Out𝐾 ′ , 𝑓x ∥ □ ≤ (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 𝛿□                (𝐾, 𝐾 ′ ) < 𝜖 .
+
+Hence,
+
+                                                      Θ(x) 𝑗 − Θ′ (x) 𝑗 < 𝜖 .
+
+
+
+
+C       Implications for Approximation
+In this section, we prove our main results, providing explicit conditions under which dense deep ReLU networks fail to
+be universal. In other words, for sufficiently large input dimension 𝑑0 , any dense ReLU network architecture is not dense
+in Lip(𝑑0 , 𝑑 𝐿 ) (the space of Lipschitz continuous functions with Lipschitz constant bounded by 1). First, we prove a
+variant of Yarotsky [2017], Theorem 4., part (a), which depends only on one implicit parameter (in contrast to two in the
+original theorem). Yarotsky [2017], Theorem 4. provides lower bounds on the number of computational units a network
+architecture must have in order to be able to approximate any function in Lip(𝑑0 , 𝑑 𝐿 ). Then, we use these two results to
+show that for a large enough input dimension, no ReLU architecture can approximate all functions with a small 𝜖 error.
+This highlights an inherent limitation of dense networks.
+
+C.1      Lower Bounds Based on VC-Dimension
+We establish the following theorem by following the steps of the proof of Yarotsky [2017], Theorem 4. Theorem 8
+gives a result close to the first part of Yarotsky [2017], Theorem 4, but with explicit constants restricted to Lipschitz
+continuous functions.
+
+Recall that for a hypothesis class H of Boolean functions on [0, 1] 𝑑 , the VC-dimension is the size of the largest subset
+𝑆 ⊂ [0, 1] 𝑑 that can be shattered by H , i.e., on which H can realize all dichotomies (see Section 2).
+
+Of particular interest is the case where H consists of Boolean functions obtained by thresholding the scalar output of a
+ReLU network with fixed architecture and variable weights and biases. Concretely, let Θ (W,b) : [0, 1] 𝑑 → R denote the
+function computed by such a network with parameters (W, b), and consider the class
+                                   
+                              H = 𝑥 ↦→ 1 { 𝑓 𝜃 ( 𝑥 ) >𝑎} (W, b) network parameters , 𝑎 ∈ R .
+
+Here, the parameter 𝑎 ∈ R represents a threshold applied to the network output. When the network parameters are
+unconstrained, this threshold can be fixed to 𝑎 = 0 without loss of generality, since it can be absorbed into the bias of
+the last layer. We emphasize that no margin assumption is imposed here; the thresholding is purely combinatorial and
+used only to define a Boolean-valued hypothesis class.
+
+In this setting, Anthony and Bartlett [2009], Theorem 8.7 shows that the VC-dimension satisfies
+
+                                                     VCdim(H ) ≤ 𝑐 · 𝑊 2 ,                                                         (8)
+
+
+                                                                    23
+where 𝑊 is the total number of weights in the network and 𝑐 is a universal constant independent of the architecture.
+Recall that Lip(𝑑0 , 𝑑 𝐿 ) denotes the space of 1-Lipschitz continuous functions from [0, 1] 𝑑0 to R𝑑𝐿 bounded by 1.
+Theorem 7 of Harvey et al. [2017] presents an explicit bound that improves upon the classical VC-dimension bound in
+Equation (8), showing that the universal constant 𝑐 is in fact small.
+
+Theorem 8. For any 𝜖 ∈ (0, 1/3), a ReLU network architecture capable of approximating every function 𝑓 ∈ Lip(𝑑0 , 𝑑 𝐿 )
+with error bounded by 𝜖 must have at least 𝑐 −1/2 (6𝜖) −𝑑0 /2 parameters, where 𝑐 is the absolute constant defined above.
+
+Proof. We first reduce to the case of a scalar output. Since the Lipschitz constant and the approximation error are
+defined using the infinity norm over the output, every output channel can be treated independently. Hence, it suffices to
+prove the result for 𝑑 𝐿 = 1.
+
+Given a positive integer 𝑁 to be chosen later, choose 𝑆 as a set of 𝑁 𝑑0 points x1 , . . . , x 𝑁 𝑑0 in the cube [0, 1] 𝑑0 such that
+the Euclidean distance between any pair of them is not less than 𝑁1 . Given any assignment of values 𝑦 1 , . . . , 𝑦 𝑁 𝑑0 ∈ R,
+we can construct a Lipschitz continuous function 𝑓 satisfying 𝑓 (x𝑚 ) = 𝑦 𝑚 for all 𝑚 by setting
+                                                              𝑁 𝑑0
+                                                              ∑︁                      
+                                                 𝑓 (x) =             𝑦 𝑚 𝜙 𝑁 (x − x𝑚 ) ,                                       (9)
+                                                              𝑚=1
+
+with 𝜙 : R𝑑0 → R such that 𝜙(x) = 1 − 2∥x∥ 2 if 0 ≤ ∥𝑥∥ 2 < 12 and 𝜙(x) = 0 if ∥x∥ ≥ 21 . Notice that 𝑓 is continuous
+and differentiable almost everywhere. Let us obtain a condition ensuring that such 𝑓 ∈ Lip(𝑑0 , 𝑑 𝐿 ). It is easy to see that
+
+                        max | 𝑓 (x)| ≤ max |𝑦 𝑚 |       and       max |∇ 𝑓 (x)| = 𝑁 max |𝑦 𝑚 | max |∇𝜙(x)|.
+                          x               𝑚                          x                           𝑚        x
+
+Thus, we obtain
+                                                 max |∇ 𝑓 (x)| ≤ 2𝑁 max |𝑦 𝑚 |.                                               (10)
+                                                    𝑥                              𝑚
+                             1
+Therefore, if max𝑚 |𝑦 𝑚 | ≤ 2𝑁 , then is 1-Lipschitz. Now, set
+
+                                                                            1
+                                                                  𝑁=           .                                              (11)
+                                                                            6𝜖
+Then maxx | 𝑓 (x)| ≤ 3𝜖. In particular, when 𝜖 ≤ 1/3, maxx | 𝑓 (x)| ≤ 1. Therefore, 𝑓 ∈ Lip(𝑑0 , 𝑑 𝐿 ). Suppose that there
+is a ReLU network architecture 𝜂 that can approximate, by adjusting its weights, any 𝑓 ∈ Lip(𝑑0 , 𝑑 𝐿 ) with error less
+than 𝜖. By Θ (W,b) (x), we denote the output of the network with parameters (W, b).
+
+Consider any assignment z of Boolean values 𝑧 1 , . . . , 𝑧 𝑁 𝑑0 ∈ {0, 1}. Set
+                                                         𝑧𝑚
+                                                 𝑦𝑚 =       ,            𝑚 = 1, . . . , 𝑁 𝑑0 ,
+                                                         2𝑁
+and let 𝑓 be given by Equation (9); then Equation (10) holds and hence 𝑓 ∈ Lip(𝑑0 , 𝑑 𝐿 ). By assumption, there exist
+fixed parameters (W𝑧 , b𝑧 ), such that for all 𝑚 we have
+
+                                                    |Θ (W𝑧 ,b𝑧 ) (x𝑚 ) − 𝑦 𝑚 | ≤ 𝜖,
+
+and in particular                                             (
+                                                                     1        1
+                                                                  ≥ 2𝑁 − 𝜖 > 4𝑁 ,           if 𝑧 𝑚 = 1,
+                                       Θ (W𝑧 ,b𝑧 ) (x𝑚 ) =               1
+                                                                  ≤ 𝜖 < 4𝑁 ,                if 𝑧 𝑚 = 0,
+                                                           1
+so the thresholded network Θ̂ (W𝑧 ,b𝑧 ) = 1(Θ (W𝑧 ,b𝑧 ) > 4𝑁 ) has outputs
+
+                                           Θ̂ (W𝑧 ,b𝑧 ) (x𝑚 ) = 𝑧 𝑚 ,          𝑚 = 1, . . . , 𝑁 𝑑0 .
+
+Since the Boolean values 𝑧 𝑚 were arbitrary, we conclude that the subset 𝑆 is shattered and hence
+
+                                                         VCdim( Θ̂) ≥ 𝑁 𝑑0 .
+
+
+                                                                         24
+Expressing 𝑁 through 𝜖 with Equation (11), we obtain
+
+                                                    VCdim( Θ̂) ≥ (6𝜖) −𝑑0 .                                               (12)
+
+To establish the Theorem, we apply the inequality in Equation (8) to the network Θ̂:
+
+                                                     VCdim( Θ̂) ≤ 𝑐𝑊 2 ,                                                  (13)
+
+where 𝑊 is the number of weights in 𝜂1 , which is the same as in 𝜂 if we do not count the threshold parameter. Combining
+Equation (12) with Equation (13), we obtain the desired lower bound
+
+                                                    𝑊 ≥ 𝑐 −1/2 (6𝜖) −𝑑0 /2 .
+
+
+
+Next, we relate the number of parameters of a neural network in N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) to the hidden and input dimensions,
+using formulae compatible with Corollary 7 and Theorem 8 with the choice of 𝜖 = 1/8. This correspondence will be
+used to derive the expressivity bound on strongly dense neural networks.
+
+Lemma 20. Let 𝜖 0 = 1/8. Let 𝐵 ≥ 1, 𝐿, 𝑑 𝐿 ∈ N, and let 𝑐 be the constant from Theorem 8. Let 𝑑0 satisfy
+
+                   𝑑0 ≥ 17 log2 𝑐1/2 𝐿 3 (𝐿 + 2) 2 𝑑 4𝐿 (2𝐵) 2𝐿 + 17 · 214 (𝐿 + 2) 2 𝑑 2𝐿 (2𝐵) 2𝐿 + 306.
+                                                               
+                                                                                                                          (14)
+
+Consider the family H 𝜖0 of ReLU networks with strictly less than 𝑐 −1/2 (6𝜖 0 ) −𝑑0 /2 parameters. Then, the space of dense
+neural networks in N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) with hidden dimension
+                                           &             2 2     2𝐿         2
+                                                                                                 '
+                                             22⌈ (16(𝐿+2) 𝑑𝐿 (2𝐵) )/( 𝜖0 /2) ⌉ (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿
+                              𝑑 = 8𝑀 𝐿
+                                                                   (𝜖0 /2)
+
+is a subset of H 𝜖0 .
+
+Proof. We now show that any network Θ ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) with hidden dimension
+                                    &             2 2     2𝐿         2
+                                                                                          '
+                                      22⌈ (16(𝐿+2) 𝑑𝐿 (2𝐵) )/( 𝜖0 /2) ⌉ (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿
+                           𝑑 = 8𝑀 𝐿
+                                                            (𝜖0 /2)
+
+has fewer than 𝑐 −1/2 (6𝜖0 ) −𝑑0 /2 parameters. By substituting 𝜖 0 = 1/8 and collecting powers of 2, we obtain
+             &              2 2     2𝐿         2
+                                                                    '
+               22⌈ (16( 𝐿+2) 𝑑𝐿 (2𝐵) )/( 𝜖0 /2) ⌉ (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿    l    12    2 2     2𝐿
+                                                                                                                 m
+                                                                      = 22⌈2 (𝐿+2) 𝑑𝐿 (2𝐵) ⌉+4 (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿
+                                      (𝜖0 /2)
+
+
+
+Notice that
+              l    12     2 2     2𝐿
+                                                        m     12    2 2      2𝐿
+                                                                                                          
+               22⌈2 ( 𝐿+2) 𝑑𝐿 (2𝐵) ⌉+4 (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 ≤ 22(2 (𝐿+2) 𝑑𝐿 (2𝐵) +1)+4 (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 + 1
+                                                           13     2 2     2𝐿
+                                                                                                     
+                                                         = 22 (𝐿+2) 𝑑𝐿 (2𝐵) +6 (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 + 1
+
+Therefore,
+                                              13      2 2     2𝐿 +6
+                               𝑑 ≤ 8𝑀 𝐿 · 22 ( 𝐿+2) 𝑑𝐿 (2𝐵)           (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 + 8𝑀 𝐿
+                                               13      2 2      2𝐿 +6
+                                  = 23 𝑀 𝐿 · 22 (𝐿+2) 𝑑𝐿 (2𝐵)           (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 + 23 𝑀 𝐿
+                                                                 13        2 2    2𝐿 +9
+                                  = (𝑀 𝐿 (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 )22 (𝐿+2) 𝑑𝐿 (2𝐵)              + 23 𝑀 𝐿.
+
+
+                                                              25
+Since 𝑀 ≤ 𝑑0 𝑑 𝐿 , we have
+                                                                      13        2          2𝐿 +9
+                                𝑑 ≤ (𝑑0 𝑑 2𝐿 𝐿 (𝐿 + 2) (2𝐵) 𝐿 )22 (𝐿+2) (2𝐵)                       + 23 𝑑0 𝑑 𝐿 𝐿.
+
+We now calculate 𝑊, the number of parameters (including both the weights and the biases) of Θ. We have
+
+                                        𝑊 = (𝐿 − 1)𝑑 2 + (𝑑0 + 𝑑 𝐿 + 𝐿 − 1)𝑑 + 𝑑 𝐿 ,
+
+since there are (𝐿 − 1)𝑑 2 + (𝑑0 + 𝑑 𝐿 )𝑑 weights and (𝐿 − 1)𝑑 + 𝑑 𝐿 biases in a fixed-width network.
+
+Since 𝑑 ≥ 𝑑 𝐿 , we have
+
+                                        (𝑑0 + 𝑑 𝐿 + 𝐿 − 1)𝑑 + 𝑑 𝐿 ≤ (𝑑0 + 𝑑 𝐿 + 𝐿)𝑑.
+
+Since 𝐿 ≥ 2, we have
+
+                                                  (𝑑0 + 𝑑 𝐿 + 𝐿)𝑑 ≤ 𝑑0 𝑑 𝐿 𝐿𝑑.
+
+Thus
+
+                          𝑊 = (𝐿 − 1)𝑑 2 + (𝑑0 + 𝑑 𝐿 + 𝐿 − 1)𝑑 + 𝑑 𝐿 ≤ (𝐿 − 1)𝑑 2 + 𝑑0 𝑑 𝐿 𝐿𝑑.
+                                             13         2 2   2𝐿 +9
+The bound 𝑑 ≤ (𝑑0 𝑑 2𝐿 𝐿 (𝐿 + 2) (2𝐵) 𝐿 )22 ( 𝐿+2) 𝑑𝐿 (2𝐵)            + 23 𝑑0 𝑑 𝐿 𝐿 yields
+                                                                  13      2 2     2𝐿
+                                                                                                     2
+                        𝑊 ≤ (𝐿 − 1)       𝑑0 𝑑 2𝐿 𝐿 (𝐿 + 2) (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵) +9 + 23 𝑑0 𝑑 𝐿 𝐿
+                                                                    13      2 2     2𝐿
+                                                                                                      
+                             + 𝑑0 𝑑 𝐿 𝐿 𝑑0 𝑑 2𝐿 𝐿 (𝐿 + 2) (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵) +9 + 23 𝑑0 𝑑 𝐿 𝐿
+                                                                 2  13     2 2     2𝐿
+                                                                                           2
+                           = (𝐿 − 1) 𝑑0 𝑑 2𝐿 𝐿 (𝐿 + 2) (2𝐵) 𝐿         22 (𝐿+2) 𝑑𝐿 (2𝐵) +9
+                                                                             13        2 2  2𝐿
+                             + (𝐿 − 1)23 𝑑0 𝑑 𝐿 𝐿 𝑑0 𝑑 2𝐿 𝐿 (𝐿 + 2) (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵) +9
+                                                       2
+                             + (𝐿 − 1) 23 𝑑0 𝑑 𝐿 𝐿
+                                                                       13    2 2     2𝐿
+                                                                                           
+                             + 𝑑0 𝑑 𝐿 𝐿 (𝑑0 𝑑 2𝐿 𝐿 (𝐿 + 2) (2𝐵) 𝐿 )22 (𝐿+2) 𝑑𝐿 (2𝐵) +9
+                                                     
+                             + 𝑑 0 𝑑 𝐿 𝐿 23 𝑑 0 𝑑 𝐿 𝐿
+                                                                           14        2 2           2𝐿 +18
+                           = (𝐿 − 1)𝑑02 𝑑 4𝐿 𝐿 2 (𝐿 + 2) 2 (2𝐵) 2𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+                                                                           13        2 2           2𝐿 +12
+                             + (𝐿 − 1)𝑑02 𝑑 3𝐿 𝐿 2 (𝐿 + 2) (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+                             + (𝐿 − 1)26 𝑑02 𝑑 2𝐿 𝐿 2
+                                                              13        2 2          2𝐿 +9
+                             + 𝑑02 𝑑 3𝐿 𝐿 2 (𝐿 + 2) (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+                             + 23 𝑑02 𝑑 3𝐿 𝐿 2 =: (∗)
+
+Notice that
+                                                                                13           2 2         2𝐿 +9
+                      (𝐿 − 1)26 𝑑02 𝑑 2𝐿 𝐿 2 + 𝑑02 𝑑 3𝐿 𝐿 2 (𝐿 + 2) (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)                      + 23 𝑑02 𝑑 3𝐿 𝐿 2
+                                                                                      13           2 2       2𝐿 +9
+                                        ≤ 2 · 𝑑02 𝑑 3𝐿 𝐿 2 (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+                                                                                13           2 2         2𝐿 +10
+                                        = 𝑑02 𝑑 3𝐿 𝐿 2 (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+                                                                                13           2 2         2𝐿 +12
+                                        ≤ 𝑑02 𝑑 3𝐿 𝐿 2 (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+
+
+
+
+                                                                   26
+Thus
+                                                                            13     2 2          2𝐿 +12
+                                     (𝐿 − 1)𝑑02 𝑑 3𝐿 𝐿 2 (𝐿 + 2) (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+                                        + (𝐿 − 1)26 𝑑02 𝑑 2𝐿 𝐿 2
+                                                                       13        2 2         2𝐿 +9
+                                        + 𝑑02 𝑑 3𝐿 𝐿 2 (𝐿 + 2) (2𝐵) 𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+                                        + 23 𝑑02 𝑑 3𝐿 𝐿 2
+                                                                                   14          2 2        2𝐿 +18
+                                     ≤ (𝐿 + 2) 𝑀 𝑑02 𝑑 4𝐿 𝐿 2 (𝐿 + 2) (2𝐵) 2𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+                                                                       14        2 2         2𝐿 +18
+                                     = 𝑑02 𝑑 4𝐿 𝐿 2 (𝐿 + 2) 2 (2𝐵) 2𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+
+All in all, we get
+                                                                            14         2 2      2𝐿 +18
+                                     (∗) ≤ 𝑑02 𝑑 4𝐿 𝐿 3 (𝐿 + 2) 2 (2𝐵) 2𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)
+                                                                            14         2 2      2𝐿 +18
+                                         ≤ 𝑑02 𝑑 4𝐿 𝐿 3 (𝐿 + 2) 2 (2𝐵) 2𝐿 22 (𝐿+2) 𝑑𝐿 (2𝐵)                := 𝑊
+                                                                                                             e
+
+That is, 𝑊 ≤ 𝑊
+             e . We seek a condition on 𝑑0 such that
+                                                                        𝑑0 /2
+                                                            e ≤ 𝑐 −1/2 8
+                                                            𝑊                   ,
+                                                                       6
+
+which implies 𝑊 ≤ 𝑐 −1/2 (6𝜖0 ) −𝑑0 /2 . Taking logarithms, this condition is equivalent to
+                                                                       
+                                                         e ≤ 𝑑0 log 4 .
+                                                 log 𝑐1/2𝑊
+                                                           
+                                                                 2      3
+
+Substituting the expression for 𝑊
+                                e yields
+                                                                                                               
+                         1/2 3                                                              𝑑0                 4
+                                 (𝐿 + 2) 2 𝑑 4𝐿 (2𝐵) 2𝐿 + 214 (𝐿 + 2) 2 𝑑 2𝐿 (2𝐵) 2𝐿 + 18 ≤
+                                                       
+                log2 𝑐      𝐿                                                                  log                − 2 log(𝑑0 ).
+                                                                                                      2        3
+
+A direct calculation shows that for all 𝑑0 > 1800,
+                                                                     
+                                                      1      𝑑0      4
+                                                        𝑑0 ≤    log     − 2 log(𝑑0 ).
+                                                     17      2       3
+Therefore, it suffices to require
+
+                         17 log2 𝑐1/2 𝐿 3 (𝐿 + 2) 2 𝑑 4𝐿 (2𝐵) 2𝐿 + 17 · 214 (𝐿 + 2) 2 𝑑 2𝐿 (2𝐵) 2𝐿 + 306 ≤ 𝑑0 ,
+                                                                
+
+which is precisely Equation (14).
+
+From the above theorem, we get the following.
+
+Theorem 9 (Expressivity Bound of Strongly Dense Neural Networks). Let 𝐿, 𝑑 𝐿 ∈ N with 𝐿 ≥ 2, let 𝐵 ≥ 𝐿 + 2, and let
+𝑐 be the constant from Theorem 8. Let 𝑑0 satisfy
+
+                     𝑑0 ≥ 17 log2 𝑐1/2 𝐿 3 (𝐿 + 2) 2 𝑑 4𝐿 (2𝐵) 2𝐿 + 17 · 214 (𝐿 + 2) 2 𝑑 2𝐿 (2𝐵) 2𝐿 + 306.
+                                                                 
+
+Then N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) is not a universal approximator of Lip(𝑑0 , 𝑑 𝐿 ).
+
+Proof. Fix 𝜖 0 := 1/8. Consider the family H 𝜖0 of ReLU networks with at most 𝑐 −1/2 (6𝜖0 ) −𝑑0 /2 parameters. By
+Theorem 8, there exists 𝑓 ∈ Lip(𝑑0 , 𝑑 𝐿 ) such that no function from H 𝜖0 can approximate it with error less than 𝜖0 . On
+the other hand, by Lemma 20 the space of dense neural networks N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) with hidden dimension
+                                          &             2 2     2𝐿         2
+                                                                                                '
+                                            22⌈ (16(𝐿+2) 𝑑𝐿 (2𝐵) )/( 𝜖0 /2) ⌉ (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿
+                             𝑑 = 8𝑀 𝐿
+                                                                  (𝜖0 /2)
+
+
+                                                                     27
+is a subset of H 𝜖0 .
+
+Suppose, for the sake of contradiction, that N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) is a universal approximator of Lip(𝑑0 , 𝑑 𝐿 ). Then
+there exists Θ ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) such that
+
+                                                        ∥ 𝑓 − Θ∥ ∞ ≤ 𝜖0 /2.
+
+
+By Corollary 7, any dense ReLU network Θ ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) admits an equivalent dense ReLU network
+Θ′ ∈ N N dense (𝐵, 𝐿, 𝑑0 , 𝑑 𝐿 ) with controlled hidden dimension
+                                              &             2 2     2𝐿    2
+                                                                                              '
+                                                22⌈ (16(𝐿+2) 𝑑𝐿 (2𝐵) )/𝜖0 ⌉ (𝐿 + 2)𝑑 𝐿 (2𝐵) 𝐿
+                                    𝑑 = 8𝑀 𝐿
+                                                                       𝜖0
+
+such that
+                                                       ∥Θ − Θ′ ∥ ∞ ≤ 𝜖0 /2.
+By the triangle inequality,
+                                           ∥ 𝑓 − Θ′ ∥ ∞ ≤ ∥ 𝑓 − Θ∥ ∞ + ∥Θ − Θ′ ∥ ∞ ≤ 𝜖0 .
+This contradiction completes the proof.
+
+
+D      Experiments
+We empirically test the theoretical prediction that increasing width in dense networks leads to early saturation in
+performance. We use fully connected one-hidden-layer ReLU networks in PyTorch, trained on MNIST with the
+Adam optimizer (learning rate 10−3 , batch size 128, 20 epochs). We consider two training modes: A Standard
+mode, where networks are trained without constraints and a Dense mode, where weights are clamped after each
+optimizer step to the interval [−10/𝑑𝑖−1 , 10/𝑑𝑖−1 ], where 𝑑𝑖−1 is the input dimension of the layer. We vary the
+hidden-layer width from small to highly overparameterized regimes, recording final training and test accuracy for each
+setting. Experiments were run on a single NVIDIA GeForce RTX 3050 6GB GPU. The code is available at https:
+//github.com/levi776/Dense-Neural-Networks-are-not-Universal-Approximators.
+
+Results. Standard networks improve rapidly in the underparameterized regime and reach almost perfect performance,
+with training accuracy stabilizing around 98–99%. Dense networks plateau earlier, with training accuracy around
+90–91%, and achieve lower test accuracy across all widths, creating a persistent performance gap. This supports the
+theoretical prediction that width beyond a certain scale does not further increase the effective expressive power of dense
+networks.
+
+            Width       Standard Train Acc (%)    Dense Train Acc (%)    Standard Test Acc (%)   Dense Test Acc (%)
+                1             29.5 ± 6.8               27.8 ± 6.2              29.5 ± 6.8            27.9 ± 6.2
+                2            50.5 ± 11.6              43.3 ± 12.1             50.5 ± 11.5           43.6 ± 11.7
+                4             81.0 ± 2.9               77.0 ± 4.8              80.7 ± 3.1            77.5 ± 5.1
+                8             90.0 ± 1.4               86.5 ± 1.0              89.5 ± 1.1            86.8 ± 0.8
+               16             94.5 ± 1.9               89.2 ± 0.2              93.8 ± 1.6            89.6 ± 0.2
+               32             96.9 ± 2.6               89.9 ± 0.4              95.8 ± 2.1            90.2 ± 0.4
+               64             98.2 ± 3.1               90.5 ± 0.5              96.8 ± 2.5            90.8 ± 0.5
+              128             98.9 ± 2.8               90.8 ± 0.3              97.3 ± 2.1            91.1 ± 0.4
+              256             98.9 ± 2.8               90.6 ± 0.4              97.5 ± 2.2            90.8 ± 0.4
+              512             98.9 ± 3.0               90.8 ± 0.3              97.5 ± 2.5            91.1 ± 0.4
+             1024             98.9 ± 2.9               90.9 ± 0.4              97.5 ± 2.2            91.2 ± 0.4
+             2048             98.7 ± 3.1               90.8 ± 0.4              97.3 ± 2.5            91.0 ± 0.4
+
+Table 1: Training and test accuracy on MNIST for standard and dense one-hidden-layer ReLU networks as a function of width. Dense
+networks enforce per-layer weight constraints [−10/𝑑𝑖−1 , 10/𝑑𝑖−1 ]. Values denote mean ± standard deviation over random seeds.
+
+
+
+                                                                28
+E      Deep Neural Networks as Graph-Based Models
+In this section, we define the computational graph of a feedforward network and formalize, in Lemma 21, the connection
+between graph-based neural computations and ReLU networks. We then present Lemma 22, which is a direct
+consequence of the analysis in Appendix E of Levie [2023] and Rauchwerger and Levie [2025], connecting graph-based
+neural computations to kernel-based neural computations.
+
+Graph Neural Networks and specifically message passing networks (MPNNs), form a class of neural networks designed
+to process graph-structured data [Xu et al., 2019, Rossi et al., 2023] by iteratively updating node embeddings through the
+exchange of messages between nodes. Unlike general trainable MPNNs, we consider the following special predefined
+network.
+
+SR-MPNN. Let 𝐿 ∈ N; the 𝐿-layer sum-ReLU MPNN (SR-MPNN) processes attributed graphs into output vertex
+attributes as follows. The SR-MPNN is applied on an attributed graph (𝐺, f) with adjacency matrix A = ( 𝐴𝑖, 𝑗 )𝑖, 𝑗 ∈ [𝑛]
+as the function defined by Ψ𝐿 (𝐺, f) := f ( 𝐿) , where f (0) := f and for each layer ℓ = 1, . . . , 𝐿 − 1 the update rule is:
+
+                                                            © 1 ∑︁
+                                          f (ℓ ) (𝑖) := ReLU­         𝐴𝑖, 𝑗 f (ℓ −1) ( 𝑗) ® .                                  (15)
+                                                                                          ª
+                                                              𝑛
+                                                            « 𝑗 ∈ [𝑛]                     ¬
+The output is computed like in Equation (15) with ℓ = 𝐿, without ReLU.
+
+The computational graph of a neural network. To represent a feedforward neural network within the SR-MPNN
+framework, we associate it with a directed computational graph in which vertices may be repeated. These repetitions are
+a technical but essential feature of the construction.
+
+Intuitively, when a feedforward network is implemented as an SR-MPNN on its computational graph, message passing
+uses normalized sum aggregation. If each neuron were represented by a single vertex, this normalization would
+excessively downscale signals as they propagate through the layers, so that the resulting SR-MPNN would no longer
+implements the intended feedforward computation. To balance the contributions of different neurons and ensure that
+signal magnitudes are preserved across layers, we therefore repeat each input, bias, and output neuron several times; the
+precise reason for this repetition will become clear later in the analysis.
+
+A partition of the vertex set 𝑉 of a graph is a sequence of subsets (𝑉 𝑗 ⊂ 𝑉) 𝐽𝑗=1 such that ∪ 𝑗 𝑉 𝑗 = 𝑉 and 𝑉 𝑗 ∩ 𝑉𝑖 = ∅ for
+every 𝑖 ≠ 𝑗. The partition is called balanced if |𝑉𝑖 | = |𝑉 𝑗 | for every 𝑖, 𝑗, where |𝑉𝑖 | is the number of vertices in 𝑉𝑖 .
+
+We call a graph 𝐺 = (𝑉, 𝐸), with an adjacency matrix A = ( 𝐴𝑣,𝑢 ) 𝑣,𝑢∈ [𝑛] , a depth-𝐿 computational graph with respect
+to the parameters 𝐿, 𝑑0 , 𝑑 𝐿 ∈ N, if 𝐺 satisfies the following four conditions.
+
+• Condition 1. The graph is a weighted graph. The size of the graph 𝑛 is divisible by 𝑀 (𝐿 + 2), where 𝑀 is the least
+  common multiple of 𝑑0 and 𝑑 𝐿 .
+    Notation: The vertex set 𝑉 is endowed with a balanced partition into 𝐿 + 2 sets of size 𝑑 := 𝑛/(𝐿 + 2):
+                                           𝑉 = 𝑉 (0) ∪ 𝑉 (1) ∪ · · · ∪ 𝑉 (𝐿) ∪ 𝑉 ( (bias) ) ,
+  where each 𝑉 (ℓ ) , ℓ = 0, . . . , 𝐿, is called layers, and 𝑉 ( (bias) ) is called the bias. Specifically, we call 𝑉 (0) the input
+  layer and 𝑉 ( 𝐿) the output layer. The layers 𝑉 (0) and 𝑉 (𝐿) are endowed with balanced partitions (𝑉𝑖(in) )𝑖=1            𝑑0
+                                                                                                                                 and
+     (out) 𝑑𝐿                                                                                                (in) 𝑑0
+  (𝑉𝑖     )𝑖=1 into 𝑑0 and 𝑑 𝐿 cells, respectively, each part having size 𝑑/𝑑0 and 𝑑/𝑑 𝐿 . We call (𝑉𝑖 )𝑖=1 input partition
+  and (𝑉𝑖(out) )𝑖=1
+                𝑑𝐿
+                    the output partition.
+
+• Condition 2. The graph satisfies 𝐴𝑣,𝑢 = 𝐴𝑣,𝑢′ whenever 𝑢 and 𝑢 ′ belong to the same subset in (𝑉𝑖(in) )𝑖=1𝑑0
+                                                                                                               . Moreover,
+                                 ′                                  (out)  𝑑𝐿
+  𝐴𝑣,𝑢 = 𝐴𝑣 ′ ,𝑢 whenever 𝑣 and 𝑣 belong to the same interval of (𝑉𝑖      )𝑖=1 . In addition, 𝐴𝑣,𝑢 = 𝐴𝑣,𝑢′ whenever 𝑢 and
+  𝑢 ′ belong to 𝑉 (bias) .
+• Condition 3. The graph satisfies 𝐴𝑣,𝑢 = 0 whenever either 𝑢 ∈ 𝑉 (ℓ ) and 𝑣 ∉ 𝑉 (ℓ+1) for some ℓ ∈ {0, . . . , 𝐿 − 1}, or
+  𝑢 ∈ 𝑉 (bias) and 𝑣 ∈ 𝑉 (0) , or 𝑣 ∈ 𝑉 (bias) and 𝑢 ∉ 𝑉 (bias) .
+
+
+                                                                 29
+• Condition 4. For any 𝑣, 𝑢 ∈ 𝑉 (bias) , 𝐴𝑣,𝑢 = (𝐿 + 2).
+
+We call 𝑑0 the input dimension, 𝑑 𝐿 the output dimension, and refer to 𝑑 as the hidden dimension for ℓ = 1, . . . , 𝐿 − 1.
+By CG(𝐿, 𝑑0 , 𝑑 𝐿 ), we denote the collection of all depth-𝐿 computational graphs as defined above.
+
+Computational Node Feature Vectors. Given parameters 𝐿, 𝑑0 , 𝑑 𝐿 , a computational node feature vector is any node
+feature vector which is constant on each part in 𝐶𝑑in0 and 𝐶𝑑out 𝐿
+                                                                   , and constant on 𝑉 (bias) . We define a computational input
+node feature vector as any computational node feature vector satisfying f (𝑣) = 0 for all 𝑣 ∉ 𝑉 (0) ∪ 𝑉 (bias) . The values
+of f on the sets of 𝐶𝑑in0 are interpreted as the input vector to the network, while the constant value on 𝑉 (bias) represents a
+bias signal that is present at every layer. Condition 4 of computational graph, i.e., 𝐴𝑣,𝑢 = (𝐿 + 2) for all 𝑣, 𝑢 ∈ 𝑉 (bias) ,
+ensures that this bias signal is unchanged during propagation, i.e., under successive applications of the computational
+kernel on the signal.
+
+Computational Graph Induced by Network Parameters. Given a neural network, one can induce a computational
+graph on which the SR-MPNN implements the forward propagation of the neural network. Let (W, b) be the parameters
+of the neural network Θ (W,b) ∈ N N (𝐿, 𝑑0 , 𝑑 𝐿 ), with hidden dimension 𝑑 divisible by 𝑑0 and 𝑑 𝐿 . Denote 𝑛 = 𝑑 (𝐿 + 2).
+We define the computational graph 𝐺 = 𝐺 (W,b) ∈ CG(𝐿, 𝑑0 , 𝑑 𝐿 ) induced by Θ (W,b) as follows. For every (𝑣, 𝑢) ∈ [𝑛] 2 :
+
+• 𝐴𝑣,𝑢 = 𝑊𝑖,(1)𝑗 if 𝑢 is in 𝑉 𝑗(in) and 𝑣 is the 𝑖th vertex of 𝑉 (1) .
+
+• 𝐴𝑣,𝑢 = 𝑊𝑖,( 𝐿)
+              𝑗 if 𝑢 is the 𝑗th vertex of 𝑉
+                                            ( 𝐿−1) and 𝑣 is in 𝑉 (out) .
+                                                                𝑖
+
+• For ℓ = 2, . . . , 𝐿 − 1, 𝐾 (𝑥, 𝑦) = 𝑊𝑖,(ℓ𝑗) if 𝑦 is the 𝑗th vertex of 𝑉 (ℓ −1) and 𝑥 is the 𝑖th vertex of 𝑉 (ℓ ) .
+
+• For ℓ = 2, . . . , 𝐿 − 1, 𝐴𝑣,𝑢 = 𝑏 𝑖(ℓ ) if 𝑢 is in 𝑉 (bias) and 𝑣 is the 𝑖th interval of 𝑉 (ℓ ) . Moreover, 𝐾 (𝑥, 𝑦) = 𝑏 𝑖(𝐿) if 𝑦 is
+  in 𝑈 (bias) and 𝑥 is in 𝑉𝑖(out) .
+
+We encode an input vector x ∈ R𝑑0 as node attributes fx : 𝑉 → R defined by
+                                                            𝑥,     if 𝑣 is in 𝑉𝑖(in) ,
+                                                            𝑖
+                                                           
+                                                           
+                                                           
+                                                  fx (𝑣) := 1,      if 𝑣 ∈ 𝑉(bias) ,
+                                                           
+                                                            0,
+                                                           
+                                                                    otherwise.
+                                                           
+
+In the above construction, when writing “the 𝑗th cell of the partition...” we implicitly assume that the cells are always
+sorted in increasing order.
+
+Networks as SR-MPNNs. Lemma 21 shows that the output of a 𝐵-strongly dense neural network can be expressed in
+terms of the 𝐿-layer SR-MPNN applied to its induced computational kernel.
+
+Lemma 21. Let (W, b) be the parameters of Θ (W,b) ∈ N N (𝐿, 𝑑0 , 𝑑 𝐿 ). Then, for any input x ∈ R𝑑0 and output
+channel 𝑖 ∈ [𝑑 𝐿 ], we have                                      
+                                  Θ (W,b) (x)𝑖 = Ψ𝐿 𝐺 (W,b) , 𝑓x 𝑣 ,
+
+whenever 𝑣 is in 𝑉𝑖(out) .
+
+The proof of Lemma 21 follows the same steps as the proof of Lemma 4.
+
+Computational Kernel as An Induced Computational Graph We call any depth-𝐿 computational graph with
+respect to the parameters 𝐿, 𝑑0 , 𝑑 𝐿 ∈ N a dense computational graph with bound 𝐵 if the graph is [−𝐵, 𝐵]-weighted for
+some 𝐵 ≥ 𝐿 + 2. In this case, we can induce the computational graph into a computational kernel using the method
+introduced in Section 2.
+
+
+
+
+                                                                   30
+Levie [2023], Rauchwerger and Levie [2025] show that applying an MPNN to an attributed graph and then inducing an
+attributed kernel yields the same representation as first inducing the attributed kernel and then applying the MPNN (see
+e.g. Appendix E in Rauchwerger and Levie [2025]). A direct result of this theorem in our setting is stated as follows.
+
+Lemma 22. Let 𝐿 ∈ N and 𝐵 ∈ R. For any [−𝐵, 𝐵]-weighted attributed graph (𝐺, f) with node set [𝑛], applying
+an 𝐿-layer 𝐵-IR-MPNN to its induced attributed kernel (𝐾𝐺 , 𝑓f ) corresponds to applying the standard 𝐿-layer ReLU
+graph network to 𝐺 in the following way: for every 𝑖 ∈ [𝑛] and every 𝑥 in the interval 𝐼𝑖 :
+
+                                           Φ(𝐺, f) (𝑖) = Φ 𝐿,𝐵 (𝐾𝐺 , 𝑓f ) (𝑥).
+
+
+
+
+                                                           31
+
