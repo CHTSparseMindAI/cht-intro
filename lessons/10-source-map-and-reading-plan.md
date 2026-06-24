@@ -1,6 +1,5 @@
 # Source Map And Reading Plan
 
-Read time: 12 minutes  
 Core question: what should a new hire read, and in what order?
 
 ## The Reading Strategy
@@ -150,5 +149,4 @@ At the end of onboarding, each new hire should present:
 - one claim SparseMind should not make without more evidence.
 
 Previous: [09-evaluation-product-proof.md](09-evaluation-product-proof.md)  
-Next: [source_index.md](../sources/source_index.md)
 

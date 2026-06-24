@@ -1,6 +1,5 @@
 # Sparsity Is Not Just Compression
 
-Read time: 9 minutes  
 Core question: what kind of sparsity are we talking about?
 
 ## One Word, Many Meanings
@@ -112,13 +111,6 @@ Sparsity is a design space, not a single method.
 CHT belongs to dynamic sparse training, but its differentiator is topology-guided regrowth.
 
 Hardware-friendly sparsity usually requires constraints. Those constraints make the algorithm harder but the product path more realistic.
-
-## New-Hire Exercise
-
-Make a two-column table:
-
-- left column: pruning, static sparsity, dynamic sparsity, CHT, N:M sparsity, low-rank training;
-- right column: when you would use it and what can go wrong.
 
 Previous: [01-why-sparsity-matters.md](01-why-sparsity-matters.md)  
 Next: [03-network-shape-intelligence.md](03-network-shape-intelligence.md)

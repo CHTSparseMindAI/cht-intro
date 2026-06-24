@@ -1,6 +1,5 @@
 # SNN, Edge, And Energy
 
-Read time: 9 minutes  
 Core question: why does CHT connect naturally to spiking and edge intelligence?
 
 ## Two Kinds Of Sparsity
@@ -97,17 +96,6 @@ SNNs bring temporal sparsity. CHT brings structural sparsity.
 Together, they support an energy-efficiency path for edge and neuromorphic deployment.
 
 Do not sell the story only as "brain-inspired." Sell it as measured accuracy-energy trade-off.
-
-## New-Hire Exercise
-
-Imagine a robotics customer asks why CHT matters for edge deployment.
-
-Write a short answer that mentions:
-
-- structural sparsity;
-- temporal sparsity if SNNs are involved;
-- energy or operation reduction;
-- measured device-level validation.
 
 Previous: [07-retraining-distillation-and-recovery.md](07-retraining-distillation-and-recovery.md)  
 Next: [09-evaluation-product-proof.md](09-evaluation-product-proof.md)

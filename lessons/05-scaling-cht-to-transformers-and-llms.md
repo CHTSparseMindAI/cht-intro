@@ -1,6 +1,5 @@
 # Scaling CHT To Transformers And LLMs
 
-Read time: 11 minutes  
 Core question: what changes when CHT moves from smaller networks to Transformers and LLMs?
 
 ## The Scale Problem
@@ -108,16 +107,6 @@ SparseMind should pursue the first claim until experiments prove the second in a
 Scaling CHT means solving more than accuracy. It means solving computational cost, topology update cost, optimizer behavior, memory, hardware format, and broad capability retention.
 
 The CHT family evolves because each scale adds a new constraint.
-
-## New-Hire Exercise
-
-Pick one CHT variant: CHTs, CHTss, CHTsL, CHTs24, or CHTsNM.
-
-Write:
-
-- what problem it solves;
-- what new risk it introduces;
-- what metric would prove it works.
 
 Previous: [04-the-cht-learning-loop.md](04-the-cht-learning-loop.md)  
 Next: [06-hardware-friendly-nm-sparsity.md](06-hardware-friendly-nm-sparsity.md)

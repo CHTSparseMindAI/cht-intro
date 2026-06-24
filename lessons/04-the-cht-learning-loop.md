@@ -1,6 +1,5 @@
 # The CHT Learning Loop
 
-Read time: 10 minutes  
 Core question: what actually happens during CHT training?
 
 ## The Loop In One Paragraph
@@ -122,12 +121,6 @@ CHT is a loop, not a magic mask.
 Weights learn through gradients. Topology learns through remove-and-regrow updates guided by network science.
 
 Good CHT engineering is about the interaction between initialization, removal, regrowth, sparsity schedule, optimizer, and evaluation.
-
-## New-Hire Exercise
-
-Write pseudocode for CHT in 12 lines or fewer.
-
-Then add comments next to the two lines where CHT differs most from ordinary sparse pruning.
 
 Previous: [03-network-shape-intelligence.md](03-network-shape-intelligence.md)  
 Next: [05-scaling-cht-to-transformers-and-llms.md](05-scaling-cht-to-transformers-and-llms.md)

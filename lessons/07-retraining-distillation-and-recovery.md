@@ -1,6 +1,5 @@
 # Retraining, Distillation, And Recovery
 
-Read time: 11 minutes  
 Core question: how do we turn dense models into useful sparse models?
 
 ## Why Retraining Matters
@@ -146,12 +145,6 @@ Dense-to-sparse recovery is central to productization.
 Use teacher distillation as a preservation tool, not as magic.
 
 The safest default is real data plus dense teacher plus CHT topology learning, verified across broad capabilities and real efficiency metrics.
-
-## New-Hire Exercise
-
-Design a recovery evaluation for a Chinese coding assistant model.
-
-Your checklist must include quality, teacher preservation, Chinese, code, math, long context, and speed or memory.
 
 Previous: [06-hardware-friendly-nm-sparsity.md](06-hardware-friendly-nm-sparsity.md)  
 Next: [08-snn-edge-and-energy.md](08-snn-edge-and-energy.md)

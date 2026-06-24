@@ -1,6 +1,5 @@
 # Network Shape Intelligence
 
-Read time: 10 minutes  
 Core question: why should topology contain learning signal?
 
 ## The Bridge From Networks To Neural Networks
@@ -92,12 +91,6 @@ CHT grows out of network science.
 Its core move is to treat missing neural connections as link-prediction candidates.
 
 The model's topology is not passive. It becomes part of the learning process.
-
-## New-Hire Exercise
-
-Explain "epitopological learning" without using the word "topology."
-
-A good answer might say: the model learns partly by changing which internal paths are available for information to travel through.
 
 Previous: [02-sparsity-is-not-just-compression.md](02-sparsity-is-not-just-compression.md)  
 Next: [04-the-cht-learning-loop.md](04-the-cht-learning-loop.md)

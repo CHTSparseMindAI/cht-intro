@@ -1,7 +1,5 @@
 # CHT Course Map
 
-This map shows how the course pieces fit together.
-
 ```mermaid
 flowchart TD
     A["Why sparse intelligence matters"] --> B["Sparsity families"]
@@ -13,11 +11,6 @@ flowchart TD
     G --> H["SNN, edge, and energy"]
     H --> I["Evaluation and product proof"]
     I --> J["Capstone: safe technical narrative"]
-
-    C --> S["Source papers"]
-    E --> S
-    F --> S
-    G --> S
 ```
 
 ## Concept Ladder
@@ -33,7 +26,7 @@ flowchart TD
 | Deployment | Where do SNN and edge fit? | Lesson 8 |
 | Product | What proves value? | Lesson 9 |
 
-## Recommended Paths By Role
+## Paths By Role
 
 ### Research
 

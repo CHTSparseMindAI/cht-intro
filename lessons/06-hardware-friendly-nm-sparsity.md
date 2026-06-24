@@ -1,6 +1,5 @@
 # Hardware-Friendly N:M Sparsity
 
-Read time: 11 minutes  
 Core question: when do sparse models become real acceleration?
 
 ## The Sparse Hardware Trap
@@ -112,16 +111,6 @@ N:M sparsity is the bridge from elegant sparsity to deployable sparsity.
 CHTs24 and CHTsNM matter because they force CHT to obey hardware-friendly structure.
 
 The goal is not only sparse weights. The goal is sparse weights that run.
-
-## New-Hire Exercise
-
-Answer this:
-
-"Why might an unstructured 99% sparse model fail to speed up on a GPU?"
-
-Then answer:
-
-"Why might a less sparse 2:4 model be more useful commercially?"
 
 Previous: [05-scaling-cht-to-transformers-and-llms.md](05-scaling-cht-to-transformers-and-llms.md)  
 Next: [07-retraining-distillation-and-recovery.md](07-retraining-distillation-and-recovery.md)

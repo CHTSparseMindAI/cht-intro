@@ -1,6 +1,5 @@
 # Evaluation And Product Proof
 
-Read time: 10 minutes  
 Core question: how do we know CHT is working in a way customers care about?
 
 ## Research Proof Is Not Product Proof
@@ -160,15 +159,6 @@ CHT success must be proven across model quality, systems performance, and custom
 The company should be proud of research claims while translating them into measured industrial proof.
 
 Real sparse infrastructure is built by closing the gap between paper sparsity and deployment savings.
-
-## New-Hire Exercise
-
-Take any CHT paper result and write two versions:
-
-1. a research claim;
-2. a customer-safe claim.
-
-Then list the missing measurements needed before selling it.
 
 Previous: [08-snn-edge-and-energy.md](08-snn-edge-and-energy.md)  
 Next: [10-source-map-and-reading-plan.md](10-source-map-and-reading-plan.md)

@@ -1,6 +1,5 @@
 # Why Sparsity Matters
 
-Read time: 8 minutes  
 Core question: why should a company be built around sparse intelligence?
 
 ## The Dense Model Tax
@@ -100,14 +99,5 @@ CHT matters because useful sparsity is hard to find.
 
 SparseMind matters if we can turn CHT from research evidence into reliable engineering and product evidence.
 
-## New-Hire Exercise
-
-Write a five-sentence answer to this question:
-
-"Why is SparseMind not just a pruning company?"
-
-A good answer should mention topology learning, dynamic sparse training, hardware-aware sparsity, and evaluation on real deployment metrics.
-
-Previous: [00-course-home.md](00-course-home.md)  
 Next: [02-sparsity-is-not-just-compression.md](02-sparsity-is-not-just-compression.md)
 
