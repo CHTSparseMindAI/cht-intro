@@ -1,165 +1,105 @@
-# Evaluation And Product Proof
+# Evaluation and Engineering Proof
 
-Core question: how do we know CHT is working in a way customers care about?
+**Learning objective:** Understand how to rigorously measure CHT's effectiveness from algorithm validation through systems-level benchmarking.
 
-## Research Proof Is Not Product Proof
+---
 
-A paper table can show that a sparse model matches a dense model on a benchmark. That is valuable. It is not enough for an industrial buyer.
+## Paper Results Are Just the Start
 
-Product proof asks:
+A conference table can show that a sparse model matches a dense model on a benchmark. That is a necessary first step. It is not the end of the story.
 
-- Does quality remain acceptable on the customer's actual workload?
-- Does the sparse model run faster or cheaper on target hardware?
-- Is memory reduced in the real deployment path?
-- Is energy reduced if energy is part of the promise?
-- Is the system stable under real traffic?
-- Is the engineering complexity worth it?
+Real-world effectiveness demands answers to harder questions:
 
-This is why SparseMind should think in proof layers.
+- Does quality hold up across diverse tasks, not just the headline benchmark?
+- Does the sparse model actually run faster on target hardware?
+- Is memory genuinely reduced in the execution path?
+- Is energy consumption lowered, if energy efficiency is claimed?
+- Is the system stable across different inputs and batch conditions?
+- Is the added engineering complexity justified by the measured gains?
 
-## The Five Proof Layers
+This is why evaluation should be approached systematically, in layers.
 
-### 1. Technical Proof
+---
 
-Technical proof shows the algorithm works in controlled experiments.
+## The Four Engineering Proof Layers
 
-Examples:
+### 1. Algorithmic Proof
 
-- sparse model reaches dense-like loss;
-- CHT beats another dynamic sparse training baseline;
-- topology update does not create convergence penalty;
-- 2:4 sparse model retains accuracy;
-- distillation recovers performance after sparsification.
+Shows the method works under controlled conditions:
+- Sparse model reaches dense-like loss.
+- CHT outperforms a comparable dynamic sparse training baseline.
+- Topology updates do not introduce convergence instability.
+- 2:4 constrained sparse training retains accuracy.
+- Distillation successfully recovers performance after sparsification.
 
 ### 2. Systems Proof
 
-Systems proof shows the method works inside a real software and hardware path.
+Shows the method works inside a real software and hardware stack:
+- Sparse kernels execute correctly with no hidden dense fallback paths.
+- Memory usage decreases in instrumented runs.
+- Both forward and backward passes show measurable improvement.
+- Throughput increases under realistic batch sizes and sequence lengths.
 
-Examples:
+### 3. Deployment Proof
 
-- sparse kernels execute correctly;
-- no dense fallback hides the cost;
-- memory usage decreases in measured runs;
-- forward and backward pass improve;
-- throughput increases under realistic batch and sequence settings.
+Shows the method delivers practical benefits:
+- Lower compute cost per token at inference.
+- Model fits within tighter GPU memory constraints.
+- Measurable throughput improvement on a specific hardware target.
+- Reduced energy draw on edge devices where applicable.
+- Quality preserved on domain-relevant evaluation tasks.
 
-### 3. Product Proof
+### 4. Reproducibility Proof
 
-Product proof shows the method solves a user problem.
+Shows the results are not a one-off:
+- Results reproduce across different hardware configurations.
+- Results hold across model scales or architectures.
+- Benchmarks are packaged so others can verify the findings.
+- Failure modes are documented alongside successes.
 
-Examples:
-
-- lower serving cost per token;
-- fit model into a smaller GPU memory budget;
-- increase tokens per second for a partner deployment;
-- reduce edge-device energy consumption;
-- preserve accuracy on a customer domain task.
-
-### 4. Industry Proof
-
-Industry proof shows repeatability across partners or verticals.
-
-Examples:
-
-- validation with data-center partner;
-- validation with chip or accelerator partner;
-- validation on edge or robotics setting;
-- reproducible benchmark package.
-
-### 5. Commercial Proof
-
-Commercial proof shows someone will pay or commit resources.
-
-Examples:
-
-- pilot contract;
-- paid validation;
-- cloud or hardware partnership;
-- customer deployment roadmap;
-- cost-saving estimate accepted by buyer.
+---
 
 ## Metrics That Matter
 
-For CHT and sparse LLM work, track:
+For CHT and sparse model work, track systematically:
 
-- perplexity or task loss;
-- benchmark accuracy;
-- zero-shot and instruction tasks;
-- Chinese, code, math, long context if relevant;
-- dense-teacher agreement for recovery;
-- active parameter count;
-- total model parameter count;
-- sparse-able layer sparsity;
-- total model sparsity;
-- training memory;
-- optimizer-state memory;
-- inference memory;
-- throughput;
-- TTFT;
-- latency distribution;
-- cost per token;
-- energy if measured;
-- hardware and kernel path;
-- deployment stability.
+| Category | Metrics |
+|---|---|
+| Quality | Perplexity, task-specific loss, benchmark accuracy, zero-shot and instruction-following tasks |
+| Capability breadth | Code generation, mathematical reasoning, long-context retrieval, multilingual performance |
+| Recovery | Dense-teacher agreement, KL divergence, task-level fidelity |
+| Parameter efficiency | Active parameter count, total model parameter count, sparse-able layer sparsity, total model sparsity |
+| Memory | Training memory, optimizer-state memory, inference memory |
+| Speed | Throughput (tokens/sec), time-to-first-token, latency distribution |
+| Energy | Measured energy consumption (where instrumentation is available) |
+| System | Hardware specification, kernel path, software stack version |
 
-The rule is simple:
+The rule is straightforward: if a metric is claimed as a benefit, it must be measured and reported.
 
-If a metric is part of the customer promise, it must be measured.
+---
 
-## How To Avoid Overclaiming
+## What a Good Benchmark Report Includes
 
-Bad claim:
+A thorough benchmark report should contain:
 
-"CHT makes models 75% sparse, so it cuts cost by 75%."
+- Exact model version and dense baseline configuration.
+- Sparse method, sparsity pattern, and layers sparsified.
+- Training or retraining recipe with hyperparameters.
+- Dataset specification and recovery mixture composition.
+- Distillation setup (if applicable).
+- Hardware specifications and kernel execution path.
+- Quality metrics across multiple dimensions.
+- Efficiency metrics (speed, memory, energy).
+- Failure cases and planned follow-up experiments.
 
-Better claim:
+The report should be technically precise enough that another engineer could reproduce the setup.
 
-"In this target layer set, the model uses a 1:4 sparse pattern. We still need to report total model sparsity, kernel support, quality retention, and measured end-to-end speed before translating that into cost."
+---
 
-Bad claim:
+## Key Takeaways
 
-"Sparse beats dense."
+- CHT effectiveness must be demonstrated across algorithm quality, systems performance, and practical deployment metrics.
+- Conference results are the starting point — they must be backed by measured, reproducible engineering evidence.
+- Strong engineering is built by closing the gap between theoretical sparsity and measured efficiency on real hardware.
 
-Better claim:
-
-"In these experiments, the sparse CHT variant matches or outperforms the dense baseline on selected tasks. We need to verify the same on the target model, data, and hardware."
-
-Bad claim:
-
-"Distillation can replace the dataset."
-
-Better claim:
-
-"Dense-teacher distillation can help recovery, but we prefer mixed real-data and teacher supervision unless a task-specific experiment proves teacher-only recovery is sufficient."
-
-## What A Good Benchmark Report Looks Like
-
-A good SparseMind benchmark report should include:
-
-- exact model version;
-- dense baseline;
-- sparse method and sparsity pattern;
-- layers sparsified;
-- training or retraining recipe;
-- dataset and recovery mixture;
-- distillation setup if used;
-- hardware;
-- kernel path;
-- quality metrics;
-- efficiency metrics;
-- failure cases;
-- next experiment.
-
-It should be readable by engineers and credible to external partners.
-
-## What To Remember
-
-CHT success must be proven across model quality, systems performance, and customer value.
-
-The company should be proud of research claims while translating them into measured industrial proof.
-
-Real sparse infrastructure is built by closing the gap between paper sparsity and deployment savings.
-
-Previous: [08-snn-edge-and-energy.md](08-snn-edge-and-energy.md)  
-Next: [10-source-map-and-reading-plan.md](10-source-map-and-reading-plan.md)
-
+**Previous:** [SNN, Edge, and Energy](08-snn-edge-and-energy.md)
